@@ -1,18 +1,38 @@
 {
   "name": "conference-video-cutter",
-  "version": "0.1.0+codex.20260918201416",
-  "description": "Bilingual, local-first transcript-driven conference video cutter for Codex.",
+  "version": "0.2.0+codex.20260918205204",
+  "description": "Bilingual, cloud-first and provider-neutral conference video review and cutting tools for Codex.",
   "author": {
-    "name": "Shubin Lab"
+    "name": "Shubin Lab",
+    "url": "https://github.com/shubinlab"
   },
+  "repository": "https://github.com/shubinlab/conference-video-cutter",
+  "license": "MIT",
+  "keywords": [
+    "conference",
+    "video",
+    "transcript",
+    "speakers",
+    "ffmpeg",
+    "review"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Conference Video Cutter",
-    "shortDescription": "Cut reviewed speaker talks from conference recordings.",
-    "longDescription": "Plan conference edits from a timestamped transcript, preserve Russian and English names, and render verified MP4 clips with FFmpeg.",
+    "shortDescription": "Review transcripts and cut verified speaker clips.",
+    "longDescription": "A bilingual Codex workflow for provider-neutral transcript review, speaker and Q&A boundaries, privacy-aware preflight, and verified FFmpeg exports. Cloud transcription is explicit; local ASR is optional.",
     "developerName": "Shubin Lab",
     "category": "Productivity",
-    "capabilities": [],
-    "defaultPrompt": "Help me plan, validate, and render a conference recording into speaker talks and clearly labeled extra clips."
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this conference transcript and build speaker clips.",
+      "Check speaker names and Q&A boundaries against the video.",
+      "Run a privacy-safe preflight before processing this recording."
+    ],
+    "brandColor": "#2563EB"
   }
 }

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 import subprocess
+import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -32,7 +35,7 @@ def build_cut_command(source: Path, segment: Segment, output: Path, accurate: bo
         "-hide_banner",
         "-loglevel",
         "error",
-        "-y",
+        "-n",
         "-i",
         str(source),
         "-ss",
@@ -102,7 +105,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def render_project(project: Project, accurate: bool = False) -> dict[str, object]:
+def render_project(project: Project, accurate: bool = False, force: bool = False) -> dict[str, object]:
     if not project.source.is_file():
         raise FileNotFoundError(f"source video not found: {project.source}")
     source_info = probe(project.source)
@@ -110,55 +113,78 @@ def render_project(project: Project, accurate: bool = False) -> dict[str, object
     if errors:
         raise ValueError("invalid project:\n" + "\n".join(f"- {error}" for error in errors))
     project.output_dir.mkdir(parents=True, exist_ok=True)
+    if not force:
+        existing = [project.output_dir / _output_name(project, segment) for segment in project.segments]
+        existing = [path for path in existing if path.exists()]
+        if (project.output_dir / "manifest.json").exists():
+            existing.append(project.output_dir / "manifest.json")
+        if existing:
+            raise FileExistsError(
+                "output already exists; use --force to replace it: "
+                + ", ".join(path.name for path in existing[:5])
+            )
+    staging = project.output_dir / f".cvc-staging-{uuid.uuid4().hex}"
+    staging.mkdir()
     entries: list[dict[str, object]] = []
     manifest_warnings: list[dict[str, str]] = []
-    for segment in project.segments:
-        output = project.output_dir / _output_name(project, segment)
-        command = build_cut_command(project.source, segment, output, accurate=accurate)
-        subprocess.run(command, check=True)
-        info = probe(output)
-        if source_info.video_codec and not info.video_codec:
-            raise RuntimeError(
-                f"clip {segment.id} has no video stream after stream-copy; "
-                "use --accurate or choose a keyframe-aligned start time"
+    try:
+        for segment in project.segments:
+            output = staging / _output_name(project, segment)
+            command = build_cut_command(project.source, segment, output, accurate=accurate)
+            subprocess.run(command, check=True)
+            info = probe(output)
+            if source_info.video_codec and not info.video_codec:
+                raise RuntimeError(
+                    f"clip {segment.id} has no video stream after stream-copy; "
+                    "use --accurate or choose a keyframe-aligned start time"
+                )
+            if source_info.audio_codec and not info.audio_codec:
+                raise RuntimeError(
+                    f"clip {segment.id} has no audio stream after stream-copy; "
+                    "use --accurate or choose a keyframe-aligned start time"
+                )
+            requested_duration = segment.end - segment.start
+            duration_delta = info.duration - requested_duration
+            warnings: list[str] = []
+            if abs(duration_delta) > DURATION_TOLERANCE:
+                advice = "use precise rendering for frame-accurate cuts" if not accurate else "inspect the source and output timestamps"
+                warnings.append(f"duration drift {duration_delta:+.3f}s; {advice}")
+                manifest_warnings.append({"id": segment.id, "message": warnings[-1]})
+            entries.append(
+                {
+                    "id": segment.id,
+                    "title": segment.title,
+                    "kind": segment.kind,
+                    "role": segment.role,
+                    "source_start": segment.start,
+                    "source_end": segment.end,
+                    "requested_duration": requested_duration,
+                    "observed_duration": info.duration,
+                    "duration_delta": duration_delta,
+                    "file": output.name,
+                    "size_bytes": output.stat().st_size,
+                    "sha256": _sha256(output),
+                    "media": asdict(info),
+                    "mode": "accurate" if accurate else "stream-copy",
+                    "warnings": warnings,
+                }
             )
-        if source_info.audio_codec and not info.audio_codec:
-            raise RuntimeError(
-                f"clip {segment.id} has no audio stream after stream-copy; "
-                "use --accurate or choose a keyframe-aligned start time"
-            )
-        requested_duration = segment.end - segment.start
-        duration_delta = info.duration - requested_duration
-        warnings: list[str] = []
-        if abs(duration_delta) > DURATION_TOLERANCE:
-            advice = "use --accurate for frame-accurate cuts" if not accurate else "inspect the source and output timestamps"
-            warnings.append(f"duration drift {duration_delta:+.3f}s; {advice}")
-            manifest_warnings.append({"id": segment.id, "message": warnings[-1]})
-        entries.append(
-            {
-                "id": segment.id,
-                "title": segment.title,
-                "kind": segment.kind,
-                "role": segment.role,
-                "source_start": segment.start,
-                "source_end": segment.end,
-                "requested_duration": requested_duration,
-                "observed_duration": info.duration,
-                "duration_delta": duration_delta,
-                "file": output.name,
-                "size_bytes": output.stat().st_size,
-                "sha256": _sha256(output),
-                "media": asdict(info),
-                "mode": "accurate" if accurate else "stream-copy",
-                "warnings": warnings,
-            }
-        )
-    manifest = {
-        "source": str(project.source),
-        "source_duration": source_info.duration,
-        "mode": "accurate" if accurate else "stream-copy",
-        "clips": entries,
-        "warnings": manifest_warnings,
-    }
-    (project.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return manifest
+        manifest = {
+            "source": project.source.name,
+            "source_duration": source_info.duration,
+            "mode": "accurate" if accurate else "stream-copy",
+            "clips": entries,
+            "warnings": manifest_warnings,
+        }
+        manifest_path = staging / "manifest.json"
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        for entry in entries:
+            staged_file = staging / str(entry["file"])
+            final_file = project.output_dir / staged_file.name
+            if final_file.exists() and not force:
+                raise FileExistsError(f"output appeared during render: {final_file}")
+            os.replace(staged_file, final_file)
+        os.replace(manifest_path, project.output_dir / "manifest.json")
+        return manifest
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)

@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from conference_video_cutter.cli import main
@@ -17,3 +19,15 @@ def test_all_command_help_is_russian(capsys):
     output = capsys.readouterr().out.lower()
     assert "нарезать" in output
     assert "перекодировать" in output
+
+
+def test_init_writes_valid_json_for_quoted_source(tmp_path):
+    source = tmp_path / 'talk "final".mp4'
+    source.write_bytes(b"placeholder")
+    project = tmp_path / "project.json"
+
+    assert main(["--lang", "ru", "init", "--input", str(source), "--output", str(project)]) == 0
+
+    data = json.loads(project.read_text(encoding="utf-8"))
+    assert data["source"] == source.name
+    assert data["copy_streams"] is False

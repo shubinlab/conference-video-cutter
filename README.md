@@ -1,6 +1,6 @@
 # Conference Video Cutter
 
-Local-first, transcript-driven editing for conferences: turn one long recording into reviewed speaker talks, Q&A blocks, and clearly labeled extra clips.
+Provider-neutral, transcript-driven editing for conferences: turn one long recording into reviewed speaker talks, Q&A blocks, and clearly labeled extra clips.
 
 [Русская версия](README.ru.md)
 
@@ -16,11 +16,13 @@ Conference Video Cutter makes those decisions explicit in a small JSON edit plan
 - transcript-to-Markdown rendering with source timestamps;
 - speaker and extra-block taxonomy: opening, introduction, talk, Q&A, transition, preparation, closing, and other;
 - deterministic half-open intervals (`[start, end)`), overlap and duration validation;
-- FFmpeg stream-copy cuts by default, with an opt-in accurate re-encode path;
+- precise FFmpeg cuts by default for arbitrary boundaries, with an explicit fast stream-copy path;
 - post-render `ffprobe` checks, SHA-256 hashes, and a machine-readable `manifest.json`;
-- no runtime dependency on a cloud API, database, or proprietary editor.
+- provider-neutral transcript contract: import SRT/VTT/JSON or connect an explicit cloud provider;
+- no silent media upload and no mandatory local ASR;
+- Codex skills and safety tools for preflight, normalization, review, and output verification.
 
-The project deliberately separates discovery from rendering: transcription and identity validation can use the tools appropriate to the recording, while the final cut is reproducible from the reviewed plan.
+The project deliberately separates transcription, editorial review, and rendering. A cloud transcription provider is an explicit opt-in; a local ASR backend is optional. The final cut remains reproducible from the reviewed plan.
 
 ## Install
 
@@ -41,7 +43,7 @@ cvc --lang ru doctor
 
 ## Quick start
 
-1. Obtain a timestamped transcript for the full recording with the local ASR workflow you trust. Keep the original transcript as evidence.
+1. Obtain a timestamped transcript for the full recording by importing SRT/VTT/JSON or using an explicitly selected cloud provider. Keep the original transcript as evidence. Local ASR is optional, not required.
 2. Create a project skeleton:
 
    ```bash
@@ -62,13 +64,13 @@ cvc --lang ru doctor
    cvc render project.json
    ```
 
-6. Inspect `output/manifest.json` and play the clips. If a boundary is not keyframe-aligned and stream-copy loses a stream, use:
+6. Inspect `output/manifest.json` and play the clips. For a deliberately fast keyframe-limited export, use `--stream-copy`; any duration drift is a review failure for an exact boundary:
 
    ```bash
-   cvc render --accurate project.json
+   cvc render --stream-copy project.json
    ```
 
-Stream-copy is fast and preserves the encoded streams, but it is constrained by keyframes. After rendering, inspect the manifest's `warnings`: a non-zero duration drift means the requested boundary was not represented exactly in the copied packets. Accurate mode decodes and re-encodes with H.264/AAC and is slower, but is the correct fallback when the boundary matters.
+Precise mode decodes and re-encodes with H.264/AAC and is slower, but is the safe default when the boundary matters. Stream-copy is fast and preserves encoded streams, but is constrained by keyframes; warnings must remain visible.
 
 ## Project file
 
@@ -80,7 +82,7 @@ The smallest useful plan looks like this:
   "source": "conference.mp4",
   "transcript": "transcript.srt",
   "output_dir": "output",
-  "copy_streams": true,
+  "copy_streams": false,
   "speakers": {
     "spk-01": {
       "name": "Alexey Example",
@@ -118,9 +120,21 @@ output/
 
 The source recording and real conference transcripts are intentionally excluded from Git. Use `examples/demo/` to understand the schema without distributing media.
 
+## Codex plugin tools
+
+The repository is also a Codex plugin. Its skills teach the cloud-first workflow, review speaker and Q&A boundaries, and harden private-media processing. The bundled tools do not upload anything:
+
+```bash
+python3 scripts/cvc_preflight.py project.json --json
+python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.cvc.json
+python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
+```
+
+`cvc_preflight.py` checks source, transcript/provider choice, FFmpeg, and disk without making a network request. `cvc_normalize_transcript.py` converts SRT, VTT, and common provider JSON into `cvc-transcript-v1`. `cvc_validate_output.py` checks files and hashes and can fail on render warnings.
+
 ## Design boundaries
 
-This is an editing and verification core, not a hosted transcription service or an identity database. It does not download recordings, perform face recognition, search the web for a person's name, or silently rewrite a transcript. Those steps may be useful in a larger authorized workflow, but they must remain explicit and reviewable.
+This is an editing and verification core plus Codex workflow tools, not an identity database or an opaque hosted editor. It does not download recordings, perform face recognition, search the web for a person's name, or silently rewrite a transcript. Cloud processing remains an explicit provider decision with consent and a processing receipt.
 
 ## Development
 

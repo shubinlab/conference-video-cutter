@@ -8,6 +8,7 @@ def test_default_cut_uses_stream_copy():
     command = build_cut_command(Path("source.mp4"), Segment("01", "Talk", "main_talk", 12.5, 30, "speaker"), Path("out.mp4"))
     assert "-c" in command and command[command.index("-c") + 1] == "copy"
     assert "-t" in command and command[command.index("-t") + 1] == "17.500"
+    assert "-y" not in command
 
 
 def test_accurate_cut_does_not_use_stream_copy():

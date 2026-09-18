@@ -1,7 +1,7 @@
 # Conference Video Cutter Design
 
 **Date:** 2026-09-18
-**Status:** Approved for implementation
+**Status:** Approved for implementation; plugin contract revised 2026-09-18
 **Languages:** English and Russian
 
 ## Goal
@@ -10,7 +10,7 @@ Turn a long conference recording into a reviewable transcript and a clean set of
 
 ## Product promise
 
-Conference Video Cutter is a local-first, transcript-first command-line tool for talks, webinars, and panels. It favors an explicit, inspectable edit plan over opaque automatic cuts: every segment has a type, speaker, topic, source interval, and output role. Stream copy is the default for fast, lossless-in-codec exports; frame-accurate re-encoding is an explicit opt-in.
+Conference Video Cutter is a provider-neutral, transcript-first editing core and Codex plugin for talks, webinars, and panels. It favors an explicit, inspectable edit plan over opaque automatic cuts: every segment has a type, speaker, topic, source interval, and output role. Precise rendering is the safe default for arbitrary boundaries; stream copy is an explicit fast mode with visible keyframe limitations.
 
 The user-facing project is bilingual. The CLI supports `en` and `ru` messages, documentation is maintained in `README.md` and `README.ru.md`, and transcript text, speaker names, and filenames preserve Unicode and the source language.
 
@@ -19,7 +19,7 @@ The user-facing project is bilingual. The CLI supports `en` and `ru` messages, d
 - Use previewable plans and an explicit review step, following mature CLI editor patterns such as Auto-Editor’s preview/manual ranges and export modes.
 - Keep speaker diarization optional. `pyannote-audio` is capable but brings a substantial ML stack; transcript segmentation and editorial classification must still be reviewable.
 - Treat scene detection as supporting evidence, not as semantic truth; PySceneDetect detects visual cuts, not speaker or Q&A boundaries.
-- Keep a no-reencode path, but document keyframe limitations and provide a deliberate accurate-render mode. FFmpeg stream copy is fast but cannot guarantee arbitrary frame-accurate starts.
+- Keep a no-reencode path, but make precise rendering the default and document keyframe limitations. FFmpeg stream copy is fast but cannot guarantee arbitrary frame-accurate starts.
 - Preserve intermediate artifacts and a manifest so a bad cut can be corrected without repeating transcription.
 - Design around the practical failure mode surfaced in community discussions: automatic silence/filler removal can clip words, so padding, review, and validation are first-class settings.
 
@@ -35,13 +35,13 @@ The user-facing project is bilingual. The CLI supports `en` and `ru` messages, d
 6. Optional accurate rendering command flag using FFmpeg re-encoding.
 7. Coverage, overlap, duration, codec, and output-file validation.
 8. English and Russian CLI messages and documentation.
-9. Codex plugin manifest plus a reusable skill describing the evidence-first workflow.
+9. Codex plugin manifest, provider-neutral skills, and standalone no-upload tools for preflight, transcript normalization, and output verification.
 10. Example plan and synthetic media fixture for tests; no copyrighted conference media in the repository.
 
 ### Explicitly deferred
 
 - A desktop or browser editor.
-- Cloud transcription APIs.
+- A built-in cloud transcription vendor; adapters remain an explicit integration boundary.
 - Automatic name discovery from the web.
 - Fully automatic semantic boundary selection without review.
 - Video downloading from third-party services.
@@ -50,9 +50,11 @@ The user-facing project is bilingual. The CLI supports `en` and `ru` messages, d
 ## Architecture
 
 ```text
-source video + SRT/JSON transcript + project.json
-                         |
-                    cvc plan
+source video + SRT/VTT/JSON transcript + project.json
+                      |
+             provider/import adapter
+                      v
+                  cvc plan
                          v
                   reviewed plan.json
                     /           \
@@ -73,7 +75,7 @@ The core is pure Python where possible. Process execution is isolated in an FFmp
   "source": "recording.mp4",
   "transcript": "transcript.srt",
   "output_dir": "output",
-  "copy_streams": true,
+    "copy_streams": false,
   "speakers": {
     "spk-01": {"name": "Alexey Example", "name_ru": "Алексей Пример", "topic": "Example talk"}
   },
@@ -99,7 +101,7 @@ cvc init --input recording.mp4 --output project.json --lang en
 cvc validate project.json
 cvc transcript project.json --format md --output transcript.md
 cvc render project.json
-cvc render project.json --accurate
+cvc render project.json --stream-copy
 cvc doctor
 ```
 
@@ -109,7 +111,7 @@ The CLI uses `--lang ru|en` and `CVC_LANG`; documentation gives equivalent comma
 
 - Missing FFmpeg/FFprobe: actionable bilingual error with install hints.
 - Invalid or overlapping plan: fail before writing media.
-- Stream-copy cut may begin on a nearby keyframe: record the requested and observed duration, warn in the manifest, and suggest `--accurate`.
+- Stream-copy cut may begin on a nearby keyframe: record the requested and observed duration, warn in the manifest, and suggest precise rendering.
 - Failed FFmpeg command: preserve the plan and partial files, return a non-zero exit code, and identify the exact segment.
 - Transcript gaps: keep them visible as `unassigned` in Markdown instead of silently dropping text.
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -29,6 +30,8 @@ def build_parser(lang: str = "en") -> argparse.ArgumentParser:
     render = subparsers.add_parser("render", help=message(lang, "render_help"), description=message(lang, "render_help"))
     render.add_argument("project", type=Path, help=message(lang, "project_help"))
     render.add_argument("--accurate", action="store_true", help=message(lang, "accurate_help"))
+    render.add_argument("--stream-copy", action="store_true", help="use fast keyframe-limited stream copy")
+    render.add_argument("--force", action="store_true", help="replace existing output files")
     return parser
 
 
@@ -51,14 +54,20 @@ def main(argv: list[str] | None = None) -> int:
         source = args.input.resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
-            '{\n'
-            f'  "language": "{args.lang}",\n'
-            f'  "source": "{source.name}",\n'
-            '  "transcript": "transcript.srt",\n'
-            '  "output_dir": "output",\n'
-            '  "speakers": {},\n'
-            '  "segments": []\n'
-            '}\n',
+            json.dumps(
+                {
+                    "language": args.lang,
+                    "source": source.name,
+                    "transcript": "transcript.srt",
+                    "output_dir": "output",
+                    "copy_streams": False,
+                    "speakers": {},
+                    "segments": [],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
             encoding="utf-8",
         )
         print(output)
@@ -85,7 +94,8 @@ def main(argv: list[str] | None = None) -> int:
         print(output)
         return 0
     if args.command == "render":
-        manifest = render_project(project, accurate=args.accurate)
+        accurate = args.accurate or (not args.stream_copy and not project.copy_streams)
+        manifest = render_project(project, accurate=accurate, force=args.force)
         print(message(args.lang, "rendered", count=len(manifest["clips"])))
         if manifest["warnings"]:
             print(message(args.lang, "render_warnings", count=len(manifest["warnings"])))

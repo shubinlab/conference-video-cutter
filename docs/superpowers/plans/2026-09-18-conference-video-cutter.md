@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a bilingual, local-first CLI and Codex plugin that converts a reviewed conference edit plan into a transcript and stream-copied speaker/extra clips.
+**Status:** Historical implementation record. The current plugin contract is provider-neutral/cloud-first; see the revised design spec.
+
+**Goal:** Build a bilingual CLI and Codex plugin that converts a reviewed conference edit plan into a transcript and verified speaker/extra clips.
 
 **Architecture:** A dependency-light Python package owns timecodes, plan validation, transcript grouping, bilingual messages, and FFmpeg command construction. External FFmpeg/FFprobe execution is isolated behind a small adapter; the Codex skill teaches evidence-first planning, visual checks, and safe rendering without embedding a conference-specific hardcoded script.
 
@@ -12,7 +14,7 @@
 
 ## Global Constraints
 
-- Keep the package local-first; no cloud API or media upload is required.
+- Keep the editing core dependency-light and provider-neutral; no cloud upload is required by the core.
 - Support `en` and `ru`; preserve Unicode speaker names and source-language transcript text.
 - Use half-open source intervals `[start, end)` and reject invalid or overlapping plans.
 - Use FFmpeg stream copy by default; make accurate re-encoding explicit.

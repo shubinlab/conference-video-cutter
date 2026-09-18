@@ -4,11 +4,12 @@ Thanks for helping make conference editing more reproducible and less error-pron
 
 ## Principles
 
-- Keep the core local-first and dependency-light.
+- Keep the core dependency-light and the transcription boundary provider-neutral. Local ASR is optional; no provider may be assumed or invoked silently.
 - Treat the transcript and reviewed JSON plan as inspectable evidence.
 - Preserve both English and Russian user paths when changing CLI or documentation.
 - Prefer explicit failures over silently damaged clips.
 - Do not add conference media, private transcripts, cookies, tokens, or personal data to the repository.
+- Treat `scripts/` as user-facing tools: keep them standalone, deterministic, no-upload by default, and test their JSON output.
 
 ## Development
 
@@ -17,6 +18,7 @@ uv venv .venv
 uv pip install --python .venv/bin/python pytest build
 PYTHONPATH=src .venv/bin/python -m pytest -q
 .venv/bin/python -m build
+python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
 git diff --check
 ```
 
