@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from .models import Project, Segment
 from .timecode import format_time
@@ -12,6 +13,15 @@ class TranscriptCue:
     start: float
     end: float
     text: str
+
+
+def read_transcript(path: Path) -> tuple[str, bool]:
+    """Read UTF-8 transcripts and tolerate isolated invalid decoder bytes."""
+    raw = path.read_bytes()
+    try:
+        return raw.decode("utf-8"), False
+    except UnicodeDecodeError:
+        return raw.decode("utf-8", errors="replace"), True
 
 
 def _seconds(value: str) -> float:
@@ -38,6 +48,10 @@ def group_cues(cues: list[TranscriptCue], segments: list[Segment]) -> dict[str, 
         matches = [segment for segment in segments if segment.start <= cue.start < segment.end]
         groups[matches[0].id if matches else "unassigned"].append(cue)
     return groups
+
+
+def _crossed_boundaries(cue: TranscriptCue, segments: list[Segment]) -> list[float]:
+    return [segment.end for segment in segments[:-1] if cue.start < segment.end < cue.end]
 
 
 def _kind_label(project: Project, kind: str) -> str:
@@ -89,7 +103,12 @@ def render_markdown(project: Project, cues: list[TranscriptCue]) -> str:
             ]
         )
         for cue in groups[segment.id]:
-            lines.extend([f"### `{format_time(cue.start)}–{format_time(cue.end)}`", "", cue.text, ""])
+            boundaries = _crossed_boundaries(cue, list(project.segments))
+            if boundaries:
+                points = ", ".join(format_time(point) for point in boundaries)
+                lines.extend([f"> ⚠ Cue crosses edit boundary at {points} / Реплика пересекает границу блока.", ""])
+            time_range = f"{format_time(cue.start)}–{format_time(cue.end)}"
+            lines.extend([f"### `{time_range}`", "", cue.text, ""])
     if groups["unassigned"]:
         lines.extend(["## Unassigned / Неразмеченный текст", ""])
         for cue in groups["unassigned"]:

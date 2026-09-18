@@ -1,6 +1,6 @@
 {
   "name": "conference-video-cutter",
-  "version": "0.1.0+codex.20260918185510",
+  "version": "0.1.0+codex.20260918201416",
   "description": "Bilingual, local-first transcript-driven conference video cutter for Codex.",
   "author": {
     "name": "Shubin Lab"

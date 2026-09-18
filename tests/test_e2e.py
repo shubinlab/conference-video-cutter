@@ -78,5 +78,9 @@ def test_demo_project_renders_and_writes_manifest(tmp_path: Path):
     assert output.is_file() and output.stat().st_size > 0
     assert manifest["mode"] == "stream-copy"
     assert manifest["clips"][0]["file"] == output.name
+    assert manifest["clips"][0]["size_bytes"] == output.stat().st_size
+    assert "duration_delta" in manifest["clips"][0]
+    assert "warnings" in manifest["clips"][0]
+    assert manifest["warnings"] == []
     assert probe(output).video_codec == "h264"
     assert (tmp_path / "output" / "manifest.json").is_file()

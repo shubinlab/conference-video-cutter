@@ -9,6 +9,8 @@ from pathlib import Path
 from .models import Project, Segment
 from .plan import validate_project
 
+DURATION_TOLERANCE = 0.05
+
 
 @dataclass(frozen=True)
 class MediaInfo:
@@ -109,6 +111,7 @@ def render_project(project: Project, accurate: bool = False) -> dict[str, object
         raise ValueError("invalid project:\n" + "\n".join(f"- {error}" for error in errors))
     project.output_dir.mkdir(parents=True, exist_ok=True)
     entries: list[dict[str, object]] = []
+    manifest_warnings: list[dict[str, str]] = []
     for segment in project.segments:
         output = project.output_dir / _output_name(project, segment)
         command = build_cut_command(project.source, segment, output, accurate=accurate)
@@ -124,6 +127,13 @@ def render_project(project: Project, accurate: bool = False) -> dict[str, object
                 f"clip {segment.id} has no audio stream after stream-copy; "
                 "use --accurate or choose a keyframe-aligned start time"
             )
+        requested_duration = segment.end - segment.start
+        duration_delta = info.duration - requested_duration
+        warnings: list[str] = []
+        if abs(duration_delta) > DURATION_TOLERANCE:
+            advice = "use --accurate for frame-accurate cuts" if not accurate else "inspect the source and output timestamps"
+            warnings.append(f"duration drift {duration_delta:+.3f}s; {advice}")
+            manifest_warnings.append({"id": segment.id, "message": warnings[-1]})
         entries.append(
             {
                 "id": segment.id,
@@ -132,14 +142,23 @@ def render_project(project: Project, accurate: bool = False) -> dict[str, object
                 "role": segment.role,
                 "source_start": segment.start,
                 "source_end": segment.end,
-                "requested_duration": segment.end - segment.start,
+                "requested_duration": requested_duration,
                 "observed_duration": info.duration,
+                "duration_delta": duration_delta,
                 "file": output.name,
+                "size_bytes": output.stat().st_size,
                 "sha256": _sha256(output),
                 "media": asdict(info),
                 "mode": "accurate" if accurate else "stream-copy",
+                "warnings": warnings,
             }
         )
-    manifest = {"source": str(project.source), "mode": "accurate" if accurate else "stream-copy", "clips": entries}
+    manifest = {
+        "source": str(project.source),
+        "source_duration": source_info.duration,
+        "mode": "accurate" if accurate else "stream-copy",
+        "clips": entries,
+        "warnings": manifest_warnings,
+    }
     (project.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest

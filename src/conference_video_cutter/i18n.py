@@ -15,7 +15,9 @@ MESSAGES = {
         "accurate_help": "Decode and re-encode for accurate boundaries.",
         "project_valid": "Project is valid.",
         "transcript_not_found": "Transcript not found: {path}",
+        "transcript_decode_warning": "Transcript had invalid UTF-8 bytes; replaced them with U+FFFD.",
         "rendered": "Rendered {count} clips.",
+        "render_warnings": "Boundary warnings: {count}. Use --accurate for frame-accurate cuts.",
     },
     "ru": {
         "description": "Локальная нарезка конференций по транскрипту.",
@@ -33,7 +35,9 @@ MESSAGES = {
         "accurate_help": "Декодировать и перекодировать для точных границ.",
         "project_valid": "Проект корректен.",
         "transcript_not_found": "Транскрипт не найден: {path}",
+        "transcript_decode_warning": "В транскрипте были некорректные байты UTF-8; они заменены на U+FFFD.",
         "rendered": "Нарезано клипов: {count}.",
+        "render_warnings": "Предупреждений о границах: {count}. Для точной нарезки используйте --accurate.",
     },
 }
 

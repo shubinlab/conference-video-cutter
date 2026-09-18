@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import sys
 from pathlib import Path
 
 from .i18n import message
 from .media import probe, render_project
 from .plan import load_project, validate_project
-from .transcript import parse_srt, render_markdown
+from .transcript import parse_srt, read_transcript, render_markdown
 
 
 def build_parser(lang: str = "en") -> argparse.ArgumentParser:
@@ -77,12 +78,17 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         output = args.output or project.output_dir / "transcript.md"
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(render_markdown(project, parse_srt(project.transcript.read_text(encoding="utf-8"))), encoding="utf-8")
+        transcript_text, replaced = read_transcript(project.transcript)
+        if replaced:
+            print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
+        output.write_text(render_markdown(project, parse_srt(transcript_text)), encoding="utf-8")
         print(output)
         return 0
     if args.command == "render":
         manifest = render_project(project, accurate=args.accurate)
         print(message(args.lang, "rendered", count=len(manifest["clips"])))
+        if manifest["warnings"]:
+            print(message(args.lang, "render_warnings", count=len(manifest["warnings"])))
         return 0
     if not getattr(args, "command", None):
         parser.print_help()

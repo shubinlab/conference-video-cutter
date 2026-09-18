@@ -68,7 +68,7 @@ cvc --lang ru doctor
    cvc render --accurate project.json
    ```
 
-Stream-copy is fast and preserves the encoded streams, but it is constrained by keyframes. Accurate mode decodes and re-encodes with H.264/AAC and is slower.
+Stream-copy is fast and preserves the encoded streams, but it is constrained by keyframes. After rendering, inspect the manifest's `warnings`: a non-zero duration drift means the requested boundary was not represented exactly in the copied packets. Accurate mode decodes and re-encodes with H.264/AAC and is slower, but is the correct fallback when the boundary matters.
 
 ## Project file
 
@@ -107,7 +107,7 @@ The smallest useful plan looks like this:
 
 ## Output
 
-Each clip is written to `output_dir`. The manifest records the source interval, observed duration, codecs, mode, and SHA-256 hash:
+Each clip is written to `output_dir`. The manifest records the source interval, observed duration, duration delta, codecs, mode, file size, SHA-256 hash, and per-clip warnings. Its top-level `warnings` list makes boundary drift easy to gate in automation:
 
 ```text
 output/

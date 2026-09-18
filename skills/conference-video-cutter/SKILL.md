@@ -20,8 +20,8 @@ Answer in the user's language. Russian is first-class, not a translation afterth
 5. Make each speaker segment start at the first meaningful frame of that speaker and end after that speaker's final answer. Exclude preparation and host-only material from speaker clips; keep excluded material as explicitly labeled `role: extra` segments when it helps auditability.
 6. Review intervals for overlap, accidental gaps, wrong speaker attribution, and speaker-name spelling. Use half-open intervals `[start, end)`.
 7. Run `cvc validate project.json` before rendering.
-8. Use `cvc render project.json` for stream-copy cuts. If the source has no suitable keyframe at a boundary or the output loses a stream, rerun with `cvc render --accurate project.json` and record that choice.
-9. Check `manifest.json`, file sizes, stream metadata, and representative playback before calling the work complete.
+8. Use `cvc render project.json` for stream-copy cuts. Read `manifest.json` after rendering: any boundary warning or material duration drift means the cut is not frame-accurate. Rerun with `cvc render --accurate project.json` when the boundary matters, and record that choice.
+9. Check `manifest.json`, file sizes, stream metadata, warnings, and representative playback before calling the work complete.
 
 ## Safety and evidence
 
