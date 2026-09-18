@@ -138,5 +138,5 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md), and the 
 The repository is also a valid Codex plugin root. Its manifest is [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) and its bilingual workflow is [`skills/conference-video-cutter/SKILL.md`](skills/conference-video-cutter/SKILL.md). Validate it locally with:
 
 ```bash
-python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 path/to/plugin-creator/scripts/validate_plugin.py .
 ```

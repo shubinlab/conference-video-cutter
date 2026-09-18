@@ -138,5 +138,5 @@ PYTHONPATH=src .venv/bin/python -m pytest -q
 Репозиторий одновременно является корректным корнем плагина Codex. Его манифест находится в [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json), а двуязычный workflow — в [`skills/conference-video-cutter/SKILL.md`](skills/conference-video-cutter/SKILL.md). Локальная проверка:
 
 ```bash
-python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 path/to/plugin-creator/scripts/validate_plugin.py .
 ```

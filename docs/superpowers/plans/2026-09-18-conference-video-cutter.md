@@ -267,7 +267,7 @@ git commit -m "test: add demo project and media validation"
 - [ ] **Step 1: Write the failing validation checks**
 
 ```bash
-python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 path/to/plugin-creator/scripts/validate_plugin.py .
 ```
 
 Expected: FAIL because `.codex-plugin/plugin.json` is absent.
@@ -282,7 +282,7 @@ Use the plugin scaffold schema, then describe the evidence-first workflow: inspe
 
 - [ ] **Step 4: Run validation and CI locally**
 
-Run: `python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py . && python -m pytest -q && python -m compileall -q src`
+Run: `python3 path/to/plugin-creator/scripts/validate_plugin.py . && python -m pytest -q && python -m compileall -q src`
 Expected: exit 0.
 
 - [ ] **Step 5: Commit**
@@ -302,7 +302,7 @@ git commit -m "docs: publish bilingual Codex plugin workflow"
 ```bash
 python -m pytest -q
 python -m build
-python3 /home/totem/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 path/to/plugin-creator/scripts/validate_plugin.py .
 git diff --check
 ```
 
