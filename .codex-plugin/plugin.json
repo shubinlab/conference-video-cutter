@@ -1,0 +1,18 @@
+{
+  "name": "conference-video-cutter",
+  "version": "0.1.0",
+  "description": "Bilingual, local-first transcript-driven conference video cutter for Codex.",
+  "author": {
+    "name": "Shubin Lab"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Conference Video Cutter",
+    "shortDescription": "Cut reviewed speaker talks from conference recordings.",
+    "longDescription": "Plan conference edits from a timestamped transcript, preserve Russian and English names, and render verified MP4 clips with FFmpeg.",
+    "developerName": "Shubin Lab",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Help me plan, validate, and render a conference recording into speaker talks and clearly labeled extra clips."
+  }
+}

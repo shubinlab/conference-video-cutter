@@ -1,0 +1,35 @@
+{
+  "language": "ru",
+  "source": "conference.mp4",
+  "transcript": "transcript.srt",
+  "output_dir": "output",
+  "copy_streams": true,
+  "speakers": {
+    "spk-01": {
+      "name": "Alexey Example",
+      "name_ru": "Алексей Пример",
+      "topic": "How to review evidence"
+    }
+  },
+  "segments": [
+    {
+      "id": "01",
+      "speaker_id": "spk-01",
+      "title": "Проверка фактов",
+      "kind": "main_talk",
+      "start": 5,
+      "end": 25,
+      "role": "speaker",
+      "filename": "01 — Проверка фактов — Алексей Пример.mp4"
+    },
+    {
+      "id": "02",
+      "title": "Переход ведущего",
+      "kind": "host_transition",
+      "start": 25,
+      "end": 30,
+      "role": "extra",
+      "filename": "00 — Переход ведущего.mp4"
+    }
+  ]
+}

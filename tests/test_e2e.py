@@ -1,0 +1,82 @@
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from conference_video_cutter.cli import main
+from conference_video_cutter.media import probe, render_project
+from conference_video_cutter.plan import load_project
+
+
+ROOT = Path(__file__).parents[1]
+
+
+def test_demo_project_validates_without_media(capsys):
+    assert main(["validate", str(ROOT / "examples/demo/project.json")]) == 0
+    assert "valid" in capsys.readouterr().out.lower()
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="FFmpeg is required")
+def test_demo_project_renders_and_writes_manifest(tmp_path: Path):
+    source = tmp_path / "source.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=320x180:rate=10",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000",
+            "-t",
+            "2",
+            "-c:v",
+            "libx264",
+            "-g",
+            "1",
+            "-c:a",
+            "aac",
+            str(source),
+        ],
+        check=True,
+    )
+    project_path = tmp_path / "project.json"
+    project_path.write_text(
+        json.dumps(
+            {
+                "language": "en",
+                "source": source.name,
+                "output_dir": "output",
+                "speakers": {"spk-01": {"name": "Example Speaker"}},
+                "segments": [
+                    {
+                        "id": "01",
+                        "speaker_id": "spk-01",
+                        "title": "Talk",
+                        "kind": "main_talk",
+                        "start": 0.2,
+                        "end": 1.2,
+                        "role": "speaker",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = render_project(load_project(project_path))
+
+    output = tmp_path / "output" / "01 — Talk — Example Speaker.mp4"
+    assert output.is_file() and output.stat().st_size > 0
+    assert manifest["mode"] == "stream-copy"
+    assert manifest["clips"][0]["file"] == output.name
+    assert probe(output).video_codec == "h264"
+    assert (tmp_path / "output" / "manifest.json").is_file()
