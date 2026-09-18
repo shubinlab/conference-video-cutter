@@ -16,7 +16,7 @@ Conference Video Cutter makes those decisions explicit in a small JSON edit plan
 - transcript-to-Markdown rendering with source timestamps;
 - speaker and extra-block taxonomy: opening, introduction, talk, Q&A, transition, preparation, closing, and other;
 - deterministic half-open intervals (`[start, end)`), overlap and duration validation;
-- precise FFmpeg cuts by default for arbitrary boundaries, with an explicit fast stream-copy path;
+- FFmpeg stream-copy cuts only; the product never transcodes;
 - post-render `ffprobe` checks, SHA-256 hashes, and a machine-readable `manifest.json`;
 - provider-neutral transcript contract: import SRT/VTT/JSON or connect an explicit cloud provider;
 - no silent media upload and no mandatory local ASR;
@@ -64,13 +64,13 @@ cvc --lang ru doctor
    cvc render project.json
    ```
 
-6. Inspect `output/manifest.json` and play the clips. For a deliberately fast keyframe-limited export, use `--stream-copy`; any duration drift is a review failure for an exact boundary:
+6. Inspect `output/manifest.json` and play the clips. Stream-copy is always used; any duration drift is a review finding that must be resolved by moving the boundary or explicitly accepted:
 
    ```bash
-   cvc render --stream-copy project.json
+   cvc render project.json
    ```
 
-Precise mode decodes and re-encodes with H.264/AAC and is slower, but is the safe default when the boundary matters. Stream-copy is fast and preserves encoded streams, but is constrained by keyframes; warnings must remain visible.
+Stream-copy preserves the original encoded streams and never invokes a video or audio encoder. It is constrained by keyframes, so warnings must remain visible and boundary changes must be made in the edit plan.
 
 ## Project file
 
@@ -82,7 +82,7 @@ The smallest useful plan looks like this:
   "source": "conference.mp4",
   "transcript": "transcript.srt",
   "output_dir": "output",
-  "copy_streams": false,
+  "copy_streams": true,
   "speakers": {
     "spk-01": {
       "name": "Alexey Example",

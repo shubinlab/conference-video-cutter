@@ -49,8 +49,10 @@ def parse_srt_or_vtt(text: str) -> list[dict[str, Any]]:
             "end": parse_time(right),
             "text": clean_text(lines[timing_index + 1 :]),
         }
-        if cue["end"] <= cue["start"]:
+        if cue["end"] < cue["start"]:
             raise ValueError(f"cue ends before it starts: {cue}")
+        if cue["end"] == cue["start"]:
+            cue["warning"] = "non-positive duration cue retained for review"
         if cue["text"]:
             cues.append(cue)
     return cues
@@ -67,9 +69,11 @@ def parse_json(data: Any) -> list[dict[str, Any]]:
         start = parse_time(item.get("start", item.get("start_time")))
         end = parse_time(item.get("end", item.get("end_time")))
         text = str(item.get("text", item.get("transcript", ""))).strip()
-        if end <= start:
+        if end < start:
             raise ValueError(f"cue ends before it starts: {item}")
         cue: dict[str, Any] = {"start": start, "end": end, "text": text}
+        if end == start:
+            cue["warning"] = "non-positive duration cue retained for review"
         for key in ("speaker", "speaker_id", "confidence"):
             if key in item:
                 cue[key] = item[key]

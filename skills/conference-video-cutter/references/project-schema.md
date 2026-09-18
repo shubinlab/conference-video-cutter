@@ -9,7 +9,7 @@ Use a human-readable JSON project as the interchange format. Paths are relative 
   "transcript": "transcript.cvc.json",
   "transcription": {"mode": "import", "provider": null},
   "output_dir": "output",
-  "copy_streams": false,
+  "copy_streams": true,
   "speakers": {
     "speaker-01": {"name": "Alex Example", "name_ru": "Алексей Пример", "topic": "..."}
   },

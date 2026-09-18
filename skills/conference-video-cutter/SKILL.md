@@ -25,7 +25,7 @@ Use this skill as a provider-neutral editorial workflow. The product is not a lo
 
 4. Keep names separate from recognition. Use the recording, slides, explicit introductions, and requested OSINT validation. Do not turn diarization labels into identities or use face recognition.
 
-5. Validate before rendering. Prefer precise rendering for arbitrary boundaries; use stream-copy only when keyframe drift is acceptable and visible to the user.
+5. Validate before rendering. This product never transcodes: always use FFmpeg stream-copy. If a requested boundary is not keyframe-safe, preserve the warning and move the boundary manually to a safe packet/keyframe rather than re-encoding.
 
 6. Verify the output, including hashes, missing files, warnings, duration drift, and representative playback:
 

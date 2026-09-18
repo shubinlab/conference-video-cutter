@@ -29,6 +29,8 @@ def _seconds(value: float) -> str:
 
 
 def build_cut_command(source: Path, segment: Segment, output: Path, accurate: bool = False) -> list[str]:
+    if accurate:
+        raise ValueError("transcoding is disabled: Conference Video Cutter always uses stream-copy")
     duration = segment.end - segment.start
     command = [
         "ffmpeg",
@@ -45,10 +47,7 @@ def build_cut_command(source: Path, segment: Segment, output: Path, accurate: bo
         "-map",
         "0",
     ]
-    if accurate:
-        command += ["-c:v", "libx264", "-preset", "medium", "-crf", "18", "-c:a", "aac", "-b:a", "192k"]
-    else:
-        command += ["-c", "copy", "-avoid_negative_ts", "make_zero"]
+    command += ["-c", "copy", "-avoid_negative_ts", "make_zero"]
     return command + [str(output)]
 
 
@@ -106,6 +105,8 @@ def _sha256(path: Path) -> str:
 
 
 def render_project(project: Project, accurate: bool = False, force: bool = False) -> dict[str, object]:
+    if accurate:
+        raise ValueError("transcoding is disabled: Conference Video Cutter always uses stream-copy")
     if not project.source.is_file():
         raise FileNotFoundError(f"source video not found: {project.source}")
     source_info = probe(project.source)
@@ -136,18 +137,18 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
             if source_info.video_codec and not info.video_codec:
                 raise RuntimeError(
                     f"clip {segment.id} has no video stream after stream-copy; "
-                    "use --accurate or choose a keyframe-aligned start time"
+                    "move the boundary to a keyframe-aligned start time"
                 )
             if source_info.audio_codec and not info.audio_codec:
                 raise RuntimeError(
                     f"clip {segment.id} has no audio stream after stream-copy; "
-                    "use --accurate or choose a keyframe-aligned start time"
+                    "move the boundary to a keyframe-aligned start time"
                 )
             requested_duration = segment.end - segment.start
             duration_delta = info.duration - requested_duration
             warnings: list[str] = []
             if abs(duration_delta) > DURATION_TOLERANCE:
-                advice = "use precise rendering for frame-accurate cuts" if not accurate else "inspect the source and output timestamps"
+                advice = "move the boundary to a keyframe-aligned time; transcoding is disabled"
                 warnings.append(f"duration drift {duration_delta:+.3f}s; {advice}")
                 manifest_warnings.append({"id": segment.id, "message": warnings[-1]})
             entries.append(
@@ -165,14 +166,14 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
                     "size_bytes": output.stat().st_size,
                     "sha256": _sha256(output),
                     "media": asdict(info),
-                    "mode": "accurate" if accurate else "stream-copy",
+                    "mode": "stream-copy",
                     "warnings": warnings,
                 }
             )
         manifest = {
             "source": project.source.name,
             "source_duration": source_info.duration,
-            "mode": "accurate" if accurate else "stream-copy",
+        "mode": "stream-copy",
             "clips": entries,
             "warnings": manifest_warnings,
         }

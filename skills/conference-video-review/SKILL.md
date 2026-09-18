@@ -32,4 +32,4 @@ Produce:
 - a review log containing uncertain boundaries and names;
 - a list of clips excluded from the main speaker set and why.
 
-Use `cvc validate` and `scripts/cvc_validate_output.py` after changes. A stream-copy duration warning is a review failure for a boundary that must be frame-accurate; switch to precise rendering rather than hiding the warning.
+Use `cvc validate` and `scripts/cvc_validate_output.py` after changes. A stream-copy duration warning is a review failure for a boundary that must be exact; adjust the editorial boundary to the nearest acceptable keyframe or retain the warning explicitly. Never switch to transcoding.

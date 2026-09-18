@@ -10,7 +10,7 @@ Turn a long conference recording into a reviewable transcript and a clean set of
 
 ## Product promise
 
-Conference Video Cutter is a provider-neutral, transcript-first editing core and Codex plugin for talks, webinars, and panels. It favors an explicit, inspectable edit plan over opaque automatic cuts: every segment has a type, speaker, topic, source interval, and output role. Precise rendering is the safe default for arbitrary boundaries; stream copy is an explicit fast mode with visible keyframe limitations.
+Conference Video Cutter is a provider-neutral, transcript-first editing core and Codex plugin for talks, webinars, and panels. It favors an explicit, inspectable edit plan over opaque automatic cuts: every segment has a type, speaker, topic, source interval, and output role. It always uses FFmpeg stream-copy and never transcodes; keyframe limitations remain visible in the manifest.
 
 The user-facing project is bilingual. The CLI supports `en` and `ru` messages, documentation is maintained in `README.md` and `README.ru.md`, and transcript text, speaker names, and filenames preserve Unicode and the source language.
 
@@ -19,7 +19,7 @@ The user-facing project is bilingual. The CLI supports `en` and `ru` messages, d
 - Use previewable plans and an explicit review step, following mature CLI editor patterns such as Auto-Editor’s preview/manual ranges and export modes.
 - Keep speaker diarization optional. `pyannote-audio` is capable but brings a substantial ML stack; transcript segmentation and editorial classification must still be reviewable.
 - Treat scene detection as supporting evidence, not as semantic truth; PySceneDetect detects visual cuts, not speaker or Q&A boundaries.
-- Keep a no-reencode path, but make precise rendering the default and document keyframe limitations. FFmpeg stream copy is fast but cannot guarantee arbitrary frame-accurate starts.
+- Keep only the no-reencode path and document keyframe limitations. FFmpeg stream copy cannot guarantee arbitrary frame-accurate starts.
 - Preserve intermediate artifacts and a manifest so a bad cut can be corrected without repeating transcription.
 - Design around the practical failure mode surfaced in community discussions: automatic silence/filler removal can clip words, so padding, review, and validation are first-class settings.
 
@@ -32,7 +32,7 @@ The user-facing project is bilingual. The CLI supports `en` and `ru` messages, d
 3. SRT transcript parsing and Markdown rendering with block headings.
 4. Human-reviewable segment types: `opening`, `speaker_intro`, `main_talk`, `qa`, `host_transition`, `technical_prep`, `closing`, and `other`.
 5. Stream-copy FFmpeg rendering of speaker clips and extra clips.
-6. Optional accurate rendering command flag using FFmpeg re-encoding.
+6. Stream-copy rendering only; transcoding is explicitly out of scope.
 7. Coverage, overlap, duration, codec, and output-file validation.
 8. English and Russian CLI messages and documentation.
 9. Codex plugin manifest, provider-neutral skills, and standalone no-upload tools for preflight, transcript normalization, and output verification.
@@ -75,7 +75,7 @@ The core is pure Python where possible. Process execution is isolated in an FFmp
   "source": "recording.mp4",
   "transcript": "transcript.srt",
   "output_dir": "output",
-    "copy_streams": false,
+    "copy_streams": true,
   "speakers": {
     "spk-01": {"name": "Alexey Example", "name_ru": "Алексей Пример", "topic": "Example talk"}
   },
@@ -101,7 +101,6 @@ cvc init --input recording.mp4 --output project.json --lang en
 cvc validate project.json
 cvc transcript project.json --format md --output transcript.md
 cvc render project.json
-cvc render project.json --stream-copy
 cvc doctor
 ```
 
@@ -111,7 +110,7 @@ The CLI uses `--lang ru|en` and `CVC_LANG`; documentation gives equivalent comma
 
 - Missing FFmpeg/FFprobe: actionable bilingual error with install hints.
 - Invalid or overlapping plan: fail before writing media.
-- Stream-copy cut may begin on a nearby keyframe: record the requested and observed duration, warn in the manifest, and suggest precise rendering.
+- Stream-copy cut may begin on a nearby keyframe: record the requested and observed duration, warn in the manifest, and adjust the edit boundary when exactness matters. Never transcode.
 - Failed FFmpeg command: preserve the plan and partial files, return a non-zero exit code, and identify the exact segment.
 - Transcript gaps: keep them visible as `unassigned` in Markdown instead of silently dropping text.
 

@@ -17,7 +17,7 @@
 - Keep the editing core dependency-light and provider-neutral; no cloud upload is required by the core.
 - Support `en` and `ru`; preserve Unicode speaker names and source-language transcript text.
 - Use half-open source intervals `[start, end)` and reject invalid or overlapping plans.
-- Use FFmpeg stream copy by default; make accurate re-encoding explicit.
+- Use FFmpeg stream copy only; transcoding is disabled by product policy.
 - Do not ship copyrighted conference media or transient URLs.
 - Validate outputs with FFprobe and retain a JSON manifest.
 - Use only the Python standard library at runtime in v0.1.
@@ -168,9 +168,9 @@ git commit -m "feat: render transcript by editorial blocks"
 - Modify: `src/conference_video_cutter/cli.py`
 
 **Interfaces:**
-- `build_cut_command(source: Path, segment: Segment, output: Path, accurate: bool = False) -> list[str]`.
+- `build_cut_command(source: Path, segment: Segment, output: Path) -> list[str]`.
 - `probe(path: Path) -> MediaInfo`.
-- `render_project(project: Project, accurate: bool = False) -> Manifest`.
+- `render_project(project: Project, force: bool = False) -> Manifest`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -179,9 +179,9 @@ def test_default_cut_uses_stream_copy(source, segment, output):
     command = build_cut_command(source, segment, output)
     assert "-c" in command and "copy" in command
 
-def test_accurate_cut_does_not_use_stream_copy(source, segment, output):
-    command = build_cut_command(source, segment, output, accurate=True)
-    assert "-c:v" in command and "libx264" in command
+def test_transcoding_is_rejected(source, segment, output):
+    with pytest.raises(ValueError):
+        build_cut_command(source, segment, output, accurate=True)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -191,7 +191,7 @@ Expected: FAIL because media helpers are absent.
 
 - [ ] **Step 3: Write minimal implementation**
 
-Build safe argument lists without shell interpolation. Default to `-ss`, `-t`, `-map 0`, `-c copy`, and `-avoid_negative_ts make_zero`; accurate mode uses explicit H.264/AAC encoding. Probe duration and codecs with `ffprobe`; write manifest entries and warnings.
+Build safe argument lists without shell interpolation. Use `-ss`, `-t`, `-map 0`, `-c copy`, and `-avoid_negative_ts make_zero`; reject any transcoding request. Probe duration and codecs with `ffprobe`; write manifest entries and warnings.
 
 - [ ] **Step 4: Run tests to verify they pass**
 

@@ -18,7 +18,7 @@ def test_all_command_help_is_russian(capsys):
     assert error.value.code == 0
     output = capsys.readouterr().out.lower()
     assert "нарезать" in output
-    assert "перекодировать" in output
+    assert "нарезать" in output
 
 
 def test_init_writes_valid_json_for_quoted_source(tmp_path):
@@ -30,4 +30,4 @@ def test_init_writes_valid_json_for_quoted_source(tmp_path):
 
     data = json.loads(project.read_text(encoding="utf-8"))
     assert data["source"] == source.name
-    assert data["copy_streams"] is False
+    assert data["copy_streams"] is True
