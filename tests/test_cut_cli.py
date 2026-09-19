@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from conference_video_cutter.cut_cli import main
+from conference_video_cutter.cut import cut_one, snap_one
 
 
 pytestmark = pytest.mark.skipif(
@@ -47,6 +48,42 @@ def _source(tmp_path: Path) -> Path:
     return source
 
 
+def _gop_source(tmp_path: Path) -> Path:
+    source = tmp_path / "gop-source.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=320x180:rate=10",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000",
+            "-t",
+            "3",
+            "-c:v",
+            "libx264",
+            "-g",
+            "10",
+            "-keyint_min",
+            "10",
+            "-sc_threshold",
+            "0",
+            "-c:a",
+            "aac",
+            str(source),
+        ],
+        check=True,
+    )
+    return source
+
+
 def test_cut_cli_has_stream_copy_commands(capsys):
     with pytest.raises(SystemExit) as error:
         main(["--help"])
@@ -54,6 +91,7 @@ def test_cut_cli_has_stream_copy_commands(capsys):
     output = capsys.readouterr().out
     assert "probe" in output
     assert "cut" in output
+    assert "snap" in output
     assert "batch" in output
 
 
@@ -88,6 +126,33 @@ def test_cut_cli_cuts_one_file_without_transcoding(tmp_path: Path, capsys):
     assert result["mode"] == "stream-copy"
     assert result["media"]["video_codec"] == "h264"
     assert result["media"]["audio_codec"] == "aac"
+
+
+def test_cut_rejects_unsynchronized_stream_copy_boundary(tmp_path: Path):
+    source = _gop_source(tmp_path)
+
+    with pytest.raises(RuntimeError, match="start mismatch"):
+        cut_one(source, "0.2", "1.2", tmp_path / "unsafe.mp4")
+
+
+def test_snap_reports_requires_transcode_when_no_nearby_keyframe(tmp_path: Path):
+    source = _gop_source(tmp_path)
+
+    result = snap_one(source, "0.8", "1.8", tmp_path / "snap.mp4", window=0.1)
+
+    assert result["status"] == "requires-transcode"
+    assert not (tmp_path / "snap.mp4").exists()
+
+
+def test_snap_writes_verified_stream_copy_from_safe_boundary(tmp_path: Path):
+    source = _source(tmp_path)
+
+    result = snap_one(source, "0.23", "1.23", tmp_path / "snap.mp4", window=0.25)
+
+    assert result["status"] == "snapped"
+    assert result["mode"] == "stream-copy"
+    assert result["snapped_start"] == 0.2
+    assert (tmp_path / "snap.mp4").is_file()
 
 
 def test_cut_cli_refuses_overwrite_without_force(tmp_path: Path, capsys):

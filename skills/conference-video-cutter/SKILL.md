@@ -38,11 +38,12 @@ For direct media operations, use the bundled `cvc-cut` CLI:
 ```bash
 cvc-cut probe recording.mp4 --json
 cvc-cut cut --input recording.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4
+cvc-cut snap --input recording.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4 --window 0.25
 cvc-cut batch project.json --json
 cvc-cut verify output/manifest.json --strict --json
 ```
 
-It is stream-copy-only. Existing outputs require `--force`; boundary drift is reported as a warning and must be reviewed, never fixed by enabling transcoding.
+It is stream-copy-only. Existing outputs require `--force`; `snap` writes a file only after checking stream alignment and duration. If no safe candidate exists it returns `requires-transcode`; boundary drift is never silently repaired by timestamp shifting.
 
 ## Non-negotiable safety
 

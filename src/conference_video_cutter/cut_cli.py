@@ -8,7 +8,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from .cut import cut_one
+from .cut import cut_one, snap_one
 from .media import probe, render_project
 from .output import validate_manifest
 from .plan import load_project
@@ -41,6 +41,15 @@ def build_parser(lang: str = "en") -> argparse.ArgumentParser:
     cut_parser.add_argument("--output", type=Path, required=True)
     cut_parser.add_argument("--force", action="store_true", help="replace an existing output")
     cut_parser.add_argument("--json", action="store_true", dest="as_json")
+
+    snap_parser = subparsers.add_parser("snap", help=_text(lang, "snap boundaries using verified stream-copy", "подобрать границы через проверенный stream-copy"))
+    snap_parser.add_argument("--input", type=Path, required=True)
+    snap_parser.add_argument("--start", required=True, help="requested start time")
+    snap_parser.add_argument("--end", required=True, help="requested end time")
+    snap_parser.add_argument("--output", type=Path, required=True)
+    snap_parser.add_argument("--window", type=float, default=0.25, help="maximum boundary shift in seconds")
+    snap_parser.add_argument("--force", action="store_true", help="replace an existing output")
+    snap_parser.add_argument("--json", action="store_true", dest="as_json")
 
     batch_parser = subparsers.add_parser("batch", help=_text(lang, "render a reviewed project with stream-copy", "нарезать проверенный проект через stream-copy"))
     batch_parser.add_argument("project", type=Path)
@@ -79,6 +88,10 @@ def main(argv: list[str] | None = None) -> int:
             result = cut_one(args.input, args.start, args.end, args.output, force=args.force)
             _print_result(result, args.as_json)
             return 0
+        if args.command == "snap":
+            result = snap_one(args.input, args.start, args.end, args.output, window=args.window, force=args.force)
+            _print_result(result, args.as_json)
+            return 0 if result["status"] == "snapped" else 1
         if args.command == "verify":
             result = validate_manifest(args.manifest, strict=args.strict)
             _print_result(result, args.as_json)

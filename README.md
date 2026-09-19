@@ -46,11 +46,14 @@ The media engine is also available as a small standalone CLI. It always uses FFm
 ```bash
 cvc-cut probe conference.mp4 --json
 cvc-cut cut --input conference.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4
+cvc-cut snap --input conference.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4 --window 0.25
 cvc-cut batch project.json --json
 cvc-cut verify output/manifest.json --strict --json
 ```
 
 `cvc-cut cut` is the shortest path for one interval; `cvc-cut batch` uses the same reviewed project format as `cvc render`. Existing files are protected unless `--force` is explicit. Because streams are copied, a non-keyframe boundary can produce a duration warning; the CLI reports it instead of silently re-encoding.
+
+`cvc-cut snap` is stricter: it tries only nearby video keyframe candidates, verifies the resulting audio/video start alignment and duration, and returns `requires-transcode` without writing a file when no safe candidate exists.
 
 ## Quick start
 

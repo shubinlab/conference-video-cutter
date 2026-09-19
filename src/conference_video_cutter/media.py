@@ -13,6 +13,7 @@ from .models import Project, Segment
 from .plan import validate_project
 
 DURATION_TOLERANCE = 0.05
+SYNC_TOLERANCE = 0.05
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,10 @@ class MediaInfo:
     audio_codec: str | None
     width: int | None = None
     height: int | None = None
+    video_start: float | None = None
+    audio_start: float | None = None
+    video_duration: float | None = None
+    audio_duration: float | None = None
 
 
 def _seconds(value: float) -> str:
@@ -60,7 +65,7 @@ def probe(path: Path) -> MediaInfo:
             "-show_entries",
             "format=duration",
             "-show_entries",
-            "stream=codec_type,codec_name,width,height",
+            "stream=codec_type,codec_name,width,height,start_time,duration",
             "-of",
             "json",
             str(path),
@@ -73,13 +78,33 @@ def probe(path: Path) -> MediaInfo:
     streams = data.get("streams", [])
     video = next((stream for stream in streams if stream.get("codec_type") == "video"), {})
     audio = next((stream for stream in streams if stream.get("codec_type") == "audio"), {})
+
+    def optional_float(stream: dict[str, object], key: str) -> float | None:
+        value = stream.get(key)
+        return float(value) if value not in (None, "N/A") else None
+
     return MediaInfo(
         duration=float(data["format"]["duration"]),
         video_codec=video.get("codec_name"),
         audio_codec=audio.get("codec_name"),
         width=video.get("width"),
         height=video.get("height"),
+        video_start=optional_float(video, "start_time"),
+        audio_start=optional_float(audio, "start_time"),
+        video_duration=optional_float(video, "duration"),
+        audio_duration=optional_float(audio, "duration"),
     )
+
+
+def ensure_streams_start_together(info: MediaInfo, label: str) -> None:
+    if info.video_start is None or info.audio_start is None:
+        return
+    delta = info.video_start - info.audio_start
+    if abs(delta) > SYNC_TOLERANCE:
+        raise RuntimeError(
+            f"{label} audio/video start mismatch {delta:+.3f}s after stream-copy; "
+            "move the start to a decodable video keyframe or use transcoding"
+        )
 
 
 def _safe_filename(value: str) -> str:
@@ -136,6 +161,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
             command = build_cut_command(project.source, segment, output, accurate=accurate)
             subprocess.run(command, check=True)
             info = probe(output)
+            ensure_streams_start_together(info, f"clip {segment.id}")
             if source_info.video_codec and not info.video_codec:
                 raise RuntimeError(
                     f"clip {segment.id} has no video stream after stream-copy; "

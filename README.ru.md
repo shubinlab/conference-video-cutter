@@ -46,11 +46,14 @@ cvc --lang ru doctor
 ```bash
 cvc-cut probe conference.mp4 --json
 cvc-cut cut --input conference.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4
+cvc-cut snap --input conference.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4 --window 0.25
 cvc-cut batch project.json --json
 cvc-cut verify output/manifest.json --strict --json
 ```
 
 `cvc-cut cut` — короткий путь для одного интервала, а `cvc-cut batch` использует тот же проверенный формат проекта, что и `cvc render`. Существующие файлы защищены, пока явно не указан `--force`. При границе не на keyframe CLI покажет предупреждение о дрейфе длительности, а не станет молча перекодировать видео.
+
+`cvc-cut snap` работает строже: он проверяет ближайшие video keyframe-кандидаты, фактическую синхронизацию аудио/видео и длительность. Если безопасной границы нет, команда возвращает `requires-transcode` и не создаёт файл.
 
 ## Быстрый старт
 
