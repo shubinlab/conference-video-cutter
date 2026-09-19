@@ -26,6 +26,9 @@ def check_project(path: Path) -> dict[str, Any]:
     output_dir = resolve(data.get("output_dir", "output"), base)
     transcription = data.get("transcription") or {}
     provider = transcription.get("provider")
+    provider_text = str(provider) if provider is not None else ""
+    known_providers = {"assemblyai", "aws", "azure", "deepgram", "google", "local", "manual", "openai", "rev", "whisper"}
+    safe_provider = provider_text if provider_text.lower() in known_providers else "configured"
     checks: dict[str, Any] = {}
     errors: list[str] = []
 
@@ -57,7 +60,7 @@ def check_project(path: Path) -> dict[str, Any]:
     if transcript and transcript.is_file():
         checks["transcript"] = {"status": "ok", "path": transcript.name}
     elif provider:
-        checks["transcription"] = {"status": "configured", "provider": str(provider), "mode": transcription.get("mode", "cloud")}
+        checks["transcription"] = {"status": "configured", "provider": safe_provider, "mode": transcription.get("mode", "cloud")}
     else:
         checks["transcription"] = {
             "status": "action_required",

@@ -37,6 +37,19 @@ def test_parse_srt_and_group_cues():
     assert grouped["qa"][0].text.startswith("Спасибо")
 
 
+def test_parse_vtt_with_header_and_cue_identifier():
+    vtt = """WEBVTT
+
+cue-1
+00:01.000 --> 00:02.500 align:start
+VTT реплика.
+"""
+
+    cues = parse_srt(vtt)
+
+    assert cues == [TranscriptCue(1.0, 2.5, "VTT реплика.")]
+
+
 def test_markdown_labels_qa_and_keeps_russian_text():
     markdown = render_markdown(fixture_project(), parse_srt(SRT))
     assert "Ответы на вопросы" in markdown

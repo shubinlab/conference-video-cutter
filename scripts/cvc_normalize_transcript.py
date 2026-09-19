@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +22,11 @@ def parse_time(value: Any) -> float:
         return float(value)
     match = TIMESTAMP.fullmatch(str(value).strip().replace(",", "."))
     if not match:
-        raise ValueError(f"unsupported timestamp: {value!r}")
+        short = re.fullmatch(r"(?P<minutes>\d{1,3}):(?P<seconds>\d{2})(?:\.(?P<millis>\d{1,3}))?", str(value).strip())
+        if not short:
+            raise ValueError(f"unsupported timestamp: {value!r}")
+        fraction = (short.group("millis") or "").ljust(3)
+        return int(short.group("minutes")) * 60 + int(short.group("seconds")) + (int(fraction) / 1000 if fraction else 0)
     fraction = (match.group("millis") or "").ljust(3, "0")
     return (
         int(match.group("hours")) * 3600
@@ -115,14 +121,30 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--force", action="store_true", help="replace an existing output")
     args = parser.parse_args()
     try:
         result = normalize(args.source)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(args.output)
+    source = args.source.resolve()
+    output = args.output.resolve()
+    if output == source:
+        parser.error("output must differ from source")
+    if output.exists() and not args.force:
+        parser.error(f"output already exists; use --force to replace it: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, prefix=f".{output.name}.", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(result, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(temporary, output)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    print(output)
     return 0
 
 

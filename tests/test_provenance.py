@@ -79,3 +79,15 @@ def test_evidence_rejects_source_as_output(tmp_path: Path):
 
     with pytest.raises(ValueError, match="source"):
         write_source_evidence(source, source)
+
+
+def test_evidence_reports_invalid_media_without_traceback_or_path(tmp_path: Path, capsys):
+    source = tmp_path / "broken.mp4"
+    project = tmp_path / "project.json"
+    source.write_bytes(b"not media")
+    project.write_text(json.dumps({"source": source.name}), encoding="utf-8")
+
+    assert main(["evidence", str(project)]) == 2
+    error = capsys.readouterr().err
+    assert "ffprobe could not read" in error
+    assert str(source) not in error

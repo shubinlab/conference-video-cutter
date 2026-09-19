@@ -4,7 +4,7 @@
 
 **Goal:** Make the first-run conference workflow reproducible and reviewable by fixing project paths, making preflight read-only, recording source evidence, generating a local review page, and decoding every rendered clip before publication.
 
-**Architecture:** Keep the existing JSON project and FFmpeg stream-copy core. Add small standard-library helpers: provenance records source hash and full ffprobe JSON without private project paths; review renders a self-contained HTML document referencing the selected media and transcript; render/cut run a decode-only FFmpeg check before atomic publication. No ASR dependency, web upload, or transcoding is added.
+**Architecture:** Keep the existing JSON project and FFmpeg stream-copy core. Add small standard-library helpers: provenance records source hash and a redacted ffprobe profile without private project paths; review renders a self-contained HTML document referencing the selected media and transcript; render/cut run a decode-only FFmpeg check before staged publication with rollback/recovery. No ASR dependency, web upload, or transcoding is added.
 
 **Tech Stack:** Python 3.11+, standard library, pytest, FFmpeg/ffprobe.
 
@@ -17,7 +17,7 @@
 - Existing outputs require explicit `--force`.
 - Project paths are relative to the project file unless explicitly absolute.
 - Private media and absolute local paths stay outside shareable reports.
-- Every published clip is staged, verified, and then atomically published.
+- Every published clip is staged and verified before publication; directory replacement uses rollback and next-run recovery because replacing a non-empty POSIX directory is not atomic.
 
 ## Review Focus
 
@@ -60,7 +60,7 @@
 - Modify: `README.ru.md`
 
 **Interfaces:**
-- `build_source_evidence(source: Path) -> dict[str, object]` returns format version, basename, byte size, SHA-256, and full ffprobe JSON with no absolute path.
+- `build_source_evidence(source: Path) -> dict[str, object]` returns format version, basename, byte size, SHA-256, and a redacted ffprobe profile with no absolute path.
 - `cvc evidence PROJECT --output source-evidence.json` writes the evidence atomically and performs no network request.
 
 - [x] **Step 1: Write a failing test** that creates a synthetic MP4, calls `build_source_evidence`, and asserts stable hash, size, basename-only source, and codec data.

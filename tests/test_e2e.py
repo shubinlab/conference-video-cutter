@@ -173,3 +173,62 @@ def test_render_refuses_existing_empty_output_without_force(tmp_path: Path, monk
 
     with pytest.raises(FileExistsError, match="--force"):
         render_project(load_project(project_path))
+
+
+def test_render_refuses_output_that_contains_the_source(tmp_path: Path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"placeholder")
+    project_path = tmp_path / "project.json"
+    project_path.write_text(
+        json.dumps({"source": source.name, "output_dir": source.name, "segments": []}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "conference_video_cutter.media.probe",
+        lambda path: MediaInfo(duration=2.0, video_codec="h264", audio_codec="aac"),
+    )
+
+    with pytest.raises(ValueError, match="must not contain"):
+        render_project(load_project(project_path), force=True)
+
+
+def test_render_refuses_force_replacement_of_unrelated_files(tmp_path: Path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"placeholder")
+    project_path = tmp_path / "project.json"
+    project_path.write_text(
+        json.dumps({"source": source.name, "output_dir": "output", "segments": []}),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    (output_dir / "important.txt").write_text("keep", encoding="utf-8")
+    monkeypatch.setattr(
+        "conference_video_cutter.media.probe",
+        lambda path: MediaInfo(duration=2.0, video_codec="h264", audio_codec="aac"),
+    )
+
+    with pytest.raises(FileExistsError, match="unrelated"):
+        render_project(load_project(project_path), force=True)
+
+
+def test_render_recovers_output_after_interrupted_directory_swap(tmp_path: Path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"placeholder")
+    project_path = tmp_path / "project.json"
+    project_path.write_text(
+        json.dumps({"source": source.name, "output_dir": "output", "segments": []}),
+        encoding="utf-8",
+    )
+    backup = tmp_path / ".output.cvc-backup-crashed"
+    backup.mkdir()
+    (backup / "manifest.json").write_text('{"mode":"stream-copy","clips":[]}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        "conference_video_cutter.media.probe",
+        lambda path: MediaInfo(duration=2.0, video_codec="h264", audio_codec="aac"),
+    )
+
+    render_project(load_project(project_path), force=True)
+
+    assert (tmp_path / "output" / "manifest.json").is_file()
+    assert not backup.exists()

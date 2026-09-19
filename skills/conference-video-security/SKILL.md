@@ -21,7 +21,7 @@ Keep the default path no-upload and least-privilege. Any cloud path is an explic
 - Limit file size, duration, output disk use, and concurrent work.
 - Keep tokens in the OS keychain or provider configuration, never in JSON, logs, or Git.
 - Generate safe output names and keep exports inside the selected output directory.
-- Render to a temporary path, verify it, then atomically publish it.
+- Render to a temporary path, verify it, then publish it with rollback and next-run recovery; replacing a non-empty directory is not atomically replaceable on POSIX.
 - Refuse silent overwrite and make retries idempotent.
 - Redact absolute paths and private URLs from shareable manifests.
 - Pin CI actions, scan dependencies, produce signed releases and attestations.

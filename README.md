@@ -157,7 +157,7 @@ python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.c
 python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
 ```
 
-`cvc_preflight.py` checks source, transcript/provider choice, FFmpeg, and disk without making a network request. `cvc_normalize_transcript.py` converts SRT, VTT, and common provider JSON into `cvc-transcript-v1`. `cvc_validate_output.py` checks files and hashes and can fail on render warnings.
+`cvc_preflight.py` checks source, transcript/provider choice, FFmpeg, and disk without making a network request. `cvc_normalize_transcript.py` converts SRT, VTT, and common provider JSON into `cvc-transcript-v1`; it refuses to replace an existing file unless `--force` is explicit. `cvc_validate_output.py` checks files and hashes and can fail on render warnings.
 
 ## Design boundaries
 

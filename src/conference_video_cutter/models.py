@@ -33,3 +33,4 @@ class Project:
     segments: tuple[Segment, ...] = ()
     copy_streams: bool = True
     complete_coverage: bool = False
+    project_path: Path | None = None

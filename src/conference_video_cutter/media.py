@@ -118,9 +118,9 @@ def ensure_decodable(path: Path, label: str) -> None:
                 "-i",
                 str(path),
                 "-map",
-                "0:v:0?",
+                "0:v?",
                 "-map",
-                "0:a:0?",
+                "0:a?",
                 "-c:v",
                 "rawvideo",
                 "-c:a",
@@ -161,6 +161,39 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        path.unlink(missing_ok=True)
+
+
+def _recover_output_transaction(output_dir: Path) -> None:
+    """Recover a directory swap interrupted between backup and publication."""
+    parent = output_dir.parent
+    backups = sorted(parent.glob(f".{output_dir.name}.cvc-backup-*"), key=lambda path: path.stat().st_mtime, reverse=True)
+    if output_dir.exists():
+        for backup in backups:
+            _remove_path(backup)
+    elif backups:
+        os.replace(backups[0], output_dir)
+        for backup in backups[1:]:
+            _remove_path(backup)
+    for staging in parent.glob(f".{output_dir.name}.cvc-staging-*"):
+        _remove_path(staging)
+
+
+def _is_cvc_output(path: Path) -> bool:
+    manifest = path / "manifest.json"
+    if not manifest.is_file():
+        return False
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    return data.get("mode") == "stream-copy" and isinstance(data.get("clips"), list)
+
+
 def render_project(project: Project, accurate: bool = False, force: bool = False) -> dict[str, object]:
     if accurate:
         raise ValueError("transcoding is disabled: Conference Video Cutter always uses stream-copy")
@@ -168,12 +201,23 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
         raise ValueError("copy_streams must be true: transcoding is disabled")
     if not project.source.is_file():
         raise FileNotFoundError(f"source video not found: {project.source}")
+    protected = [project.source]
+    if project.transcript is not None:
+        protected.append(project.transcript)
+    if project.project_path is not None:
+        protected.append(project.project_path)
+    output_resolved = project.output_dir.resolve()
+    if any(output_resolved == path.resolve() or path.resolve().is_relative_to(output_resolved) for path in protected):
+        raise ValueError("output directory must not contain or equal source, transcript, or project")
+    _recover_output_transaction(project.output_dir)
     source_info = probe(project.source)
     errors = validate_project(project, source_info.duration)
     if errors:
         raise ValueError("invalid project:\n" + "\n".join(f"- {error}" for error in errors))
     if project.output_dir.exists() and not force:
         raise FileExistsError("output already exists; use --force to replace it: " + str(project.output_dir))
+    if project.output_dir.exists() and force and project.output_dir.is_dir() and any(project.output_dir.iterdir()) and not _is_cvc_output(project.output_dir):
+        raise FileExistsError("refusing to replace a non-CVC output directory with unrelated files: " + str(project.output_dir))
     project.output_dir.parent.mkdir(parents=True, exist_ok=True)
     staging = project.output_dir.parent / f".{project.output_dir.name}.cvc-staging-{uuid.uuid4().hex}"
     staging.mkdir()

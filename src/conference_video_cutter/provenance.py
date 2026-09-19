@@ -18,22 +18,25 @@ def _sha256(path: Path) -> str:
 
 
 def _probe(path: Path) -> dict[str, Any]:
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_format",
-            "-show_streams",
-            "-show_chapters",
-            "-of",
-            "json",
-            str(path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_format",
+                "-show_streams",
+                "-show_chapters",
+                "-of",
+                "json",
+                str(path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        raise RuntimeError("ffprobe could not read the source media") from exc
     raw = json.loads(result.stdout)
     format_keys = {"format_name", "format_long_name", "start_time", "duration", "size", "bit_rate", "nb_streams", "nb_programs"}
     stream_keys = {

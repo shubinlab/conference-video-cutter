@@ -26,18 +26,25 @@ def read_transcript(path: Path) -> tuple[str, bool]:
 
 
 def _seconds(value: str) -> float:
-    hours, minutes, rest = value.replace(",", ".").split(":")
-    return int(hours) * 3600 + int(minutes) * 60 + float(rest)
+    parts = value.replace(",", ".").split(":")
+    if len(parts) == 2:
+        minutes, rest = parts
+        return int(minutes) * 60 + float(rest)
+    if len(parts) == 3:
+        hours, minutes, rest = parts
+        return int(hours) * 3600 + int(minutes) * 60 + float(rest)
+    raise ValueError(f"unsupported timestamp: {value!r}")
 
 
 def parse_srt(text: str) -> list[TranscriptCue]:
     cues: list[TranscriptCue] = []
     for raw_block in re.split(r"\n\s*\n", text.strip()):
         lines = raw_block.splitlines()
-        if len(lines) < 3 or "-->" not in lines[1]:
+        timing_index = next((index for index, line in enumerate(lines) if "-->" in line), None)
+        if timing_index is None or timing_index + 1 >= len(lines):
             continue
-        start, end = (part.strip() for part in lines[1].split("-->", 1))
-        cue_text = " ".join(line.strip() for line in lines[2:] if line.strip())
+        start, end = (part.strip().split(maxsplit=1)[0] for part in lines[timing_index].split("-->", 1))
+        cue_text = " ".join(line.strip() for line in lines[timing_index + 1 :] if line.strip())
         cues.append(TranscriptCue(_seconds(start), _seconds(end), cue_text))
     return cues
 

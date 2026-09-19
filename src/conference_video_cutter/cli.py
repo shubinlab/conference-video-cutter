@@ -4,7 +4,9 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from .i18n import message
@@ -22,6 +24,19 @@ def _ensure_output_path(output: Path, protected: list[Path], force: bool) -> Pat
     if output.exists() and not force:
         raise FileExistsError(f"output already exists; use --force to replace it: {output}")
     return output
+
+
+def _atomic_write_text(output: Path, content: str) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, prefix=f".{output.name}.", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(content)
+        os.replace(temporary, output)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def build_parser(lang: str = "en") -> argparse.ArgumentParser:
@@ -73,7 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             output = _ensure_output_path(args.output, [source], args.force)
             output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_text(
+            _atomic_write_text(
+                output,
                 json.dumps(
                     {
                         "language": args.lang,
@@ -88,9 +104,8 @@ def main(argv: list[str] | None = None) -> int:
                     indent=2,
                 )
                 + "\n",
-                encoding="utf-8",
             )
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         print(output)
@@ -100,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         output = args.output or project.output_dir / "source-evidence.json"
         try:
             write_source_evidence(project.source, output, force=args.force)
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         print(output)
@@ -111,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             cues, replaced = read_cues(project.transcript)
+            if not cues:
+                raise ValueError("transcript contains no readable cues")
             if replaced:
                 print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
             output = args.output or project.output_dir / "review.html"
@@ -138,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
             cues, replaced = read_cues(project.transcript)
             if replaced:
                 print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
-            output.write_text(render_markdown(project, cues), encoding="utf-8")
+            _atomic_write_text(output, render_markdown(project, cues))
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2

@@ -157,7 +157,7 @@ python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.c
 python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
 ```
 
-`cvc_preflight.py` проверяет исходник, транскрипт или провайдера, FFmpeg и место на диске без сетевых запросов. `cvc_normalize_transcript.py` приводит SRT, VTT и распространённый JSON провайдеров к формату `cvc-transcript-v1`. `cvc_validate_output.py` проверяет файлы и хэши и может считать предупреждения рендера ошибкой.
+`cvc_preflight.py` проверяет исходник, транскрипт или провайдера, FFmpeg и место на диске без сетевых запросов. `cvc_normalize_transcript.py` приводит SRT, VTT и распространённый JSON провайдеров к формату `cvc-transcript-v1`; существующий файл не заменяется без явного `--force`. `cvc_validate_output.py` проверяет файлы и хэши и может считать предупреждения рендера ошибкой.
 
 ## Границы проекта
 

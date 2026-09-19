@@ -51,6 +51,7 @@ def load_project(path: Path) -> Project:
         segments=segments,
         copy_streams=bool(data.get("copy_streams", True)),
         complete_coverage=bool(data.get("complete_coverage", False)),
+        project_path=path,
     )
 
 

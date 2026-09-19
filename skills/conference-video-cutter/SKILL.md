@@ -21,6 +21,8 @@ Use this skill as a provider-neutral editorial workflow. The product is not a lo
    python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.cvc.json
    ```
 
+   The normalizer refuses to replace an existing file unless `--force` is explicit.
+
 3. Build a reviewed plan with half-open intervals `[start, end)`. Classify preparation, host opening, introduction, main talk, host transition, Q&A, technical delay, closing, and other material. Speaker clips begin at the first meaningful frame and end after the speaker's final answer.
 
 4. Keep names separate from recognition. Use the recording, slides, explicit introductions, and requested OSINT validation. Do not turn diarization labels into identities or use face recognition.
