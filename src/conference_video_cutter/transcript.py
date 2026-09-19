@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .models import Project, Segment
-from .timecode import format_time
+from .timecode import format_time, parse_time
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,31 @@ def parse_srt(text: str) -> list[TranscriptCue]:
         cue_text = " ".join(line.strip() for line in lines[2:] if line.strip())
         cues.append(TranscriptCue(_seconds(start), _seconds(end), cue_text))
     return cues
+
+
+def parse_canonical_json(text: str) -> list[TranscriptCue]:
+    data = json.loads(text)
+    raw = data.get("cues", data.get("segments", data)) if isinstance(data, dict) else data
+    if not isinstance(raw, list):
+        raise ValueError("JSON transcript must be a list or an object with cues/segments")
+    cues: list[TranscriptCue] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("each JSON transcript cue must be an object")
+        start = parse_time(item.get("start", item.get("start_time")))
+        end = parse_time(item.get("end", item.get("end_time")))
+        if end < start:
+            raise ValueError(f"cue ends before it starts: {item}")
+        text_value = str(item.get("text", item.get("transcript", ""))).strip()
+        if text_value:
+            cues.append(TranscriptCue(start, end, text_value))
+    return sorted(cues, key=lambda cue: (cue.start, cue.end))
+
+
+def read_cues(path: Path) -> tuple[list[TranscriptCue], bool]:
+    text, replaced = read_transcript(path)
+    cues = parse_canonical_json(text) if path.suffix.lower() == ".json" else parse_srt(text)
+    return cues, replaced
 
 
 def group_cues(cues: list[TranscriptCue], segments: list[Segment]) -> dict[str, list[TranscriptCue]]:

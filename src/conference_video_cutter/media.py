@@ -118,7 +118,13 @@ def ensure_decodable(path: Path, label: str) -> None:
                 "-i",
                 str(path),
                 "-map",
-                "0",
+                "0:v:0?",
+                "-map",
+                "0:a:0?",
+                "-c:v",
+                "rawvideo",
+                "-c:a",
+                "pcm_s16le",
                 "-f",
                 "null",
                 "-",
@@ -166,18 +172,15 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
     errors = validate_project(project, source_info.duration)
     if errors:
         raise ValueError("invalid project:\n" + "\n".join(f"- {error}" for error in errors))
-    project.output_dir.mkdir(parents=True, exist_ok=True)
-    if not force:
-        existing = [project.output_dir / _output_name(project, segment) for segment in project.segments]
-        existing = [path for path in existing if path.exists()]
-        if (project.output_dir / "manifest.json").exists():
-            existing.append(project.output_dir / "manifest.json")
+    if project.output_dir.exists() and not force:
+        existing = list(project.output_dir.iterdir())
         if existing:
             raise FileExistsError(
                 "output already exists; use --force to replace it: "
                 + ", ".join(path.name for path in existing[:5])
             )
-    staging = project.output_dir / f".cvc-staging-{uuid.uuid4().hex}"
+    project.output_dir.parent.mkdir(parents=True, exist_ok=True)
+    staging = project.output_dir.parent / f".{project.output_dir.name}.cvc-staging-{uuid.uuid4().hex}"
     staging.mkdir()
     entries: list[dict[str, object]] = []
     manifest_warnings: list[dict[str, str]] = []
@@ -234,13 +237,18 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
         }
         manifest_path = staging / "manifest.json"
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        for entry in entries:
-            staged_file = staging / str(entry["file"])
-            final_file = project.output_dir / staged_file.name
-            if final_file.exists() and not force:
-                raise FileExistsError(f"output appeared during render: {final_file}")
-            os.replace(staged_file, final_file)
-        os.replace(manifest_path, project.output_dir / "manifest.json")
+        backup: Path | None = None
+        if project.output_dir.exists():
+            backup = project.output_dir.parent / f".{project.output_dir.name}.cvc-backup-{uuid.uuid4().hex}"
+            os.replace(project.output_dir, backup)
+        try:
+            os.replace(staging, project.output_dir)
+        except BaseException:
+            if backup is not None and not project.output_dir.exists():
+                os.replace(backup, project.output_dir)
+            raise
+        if backup is not None:
+            shutil.rmtree(backup, ignore_errors=True)
         return manifest
     finally:
         shutil.rmtree(staging, ignore_errors=True)

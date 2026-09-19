@@ -50,6 +50,8 @@ cvc review project.json --output review.html
 
 `cvc review` creates a local HTML review page with a playable source, seekable segment timecodes, and escaped transcript text. It does not start a server or upload media.
 
+All generated project, transcript, evidence, and review files are protected from accidental replacement; pass `--force` only when replacing a known output intentionally.
+
 The media engine is also available as a small standalone CLI. It always uses FFmpeg stream-copy and never accepts a transcoding mode:
 
 ```bash
@@ -95,7 +97,7 @@ The generated `source` path is relative to the directory containing `project.jso
    cvc render project.json
    ```
 
-Stream-copy preserves the original encoded streams and never invokes a video or audio encoder. It is constrained by keyframes, so warnings must remain visible and boundary changes must be made in the edit plan. Before publication, each staged clip is also decode-checked with FFmpeg; this reads the output but does not encode it.
+Stream-copy preserves the original encoded streams and never invokes a video or audio encoder. It is constrained by keyframes, so warnings must remain visible and boundary changes must be made in the edit plan. Before publication, each staged clip is also decoded into FFmpeg's null sink using uncompressed validation codecs; no encoded media file is produced.
 
 ## Project file
 

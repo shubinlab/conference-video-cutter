@@ -43,12 +43,12 @@
 - `cvc init --input SOURCE --output PROJECT` writes a source path relative to `PROJECT.parent`, preserving an absolute path only when a relative path cannot be computed.
 - `scripts/cvc_preflight.py` reports disk usage from an existing parent directory and never creates `output_dir`.
 
-- [ ] **Step 1: Write failing tests** for `cvc init` from a different directory and for preflight not creating a missing output directory.
-- [ ] **Step 2: Run the focused tests and confirm the path assertion fails and the directory side-effect is observable.**
-- [ ] **Step 3: Implement relative path calculation with `os.path.relpath` and remove preflight directory creation, using the nearest existing parent for disk usage.**
-- [ ] **Step 4: Run focused tests, then the full suite.**
-- [ ] **Step 5: Update both READMEs so `doctor` is described accurately and `init` documents project-relative paths.**
-- [ ] **Step 6: Commit `fix(cvc): make onboarding paths reproducible`.**
+- [x] **Step 1: Write failing tests** for `cvc init` from a different directory and for preflight not creating a missing output directory.
+- [x] **Step 2: Run the focused tests and confirm the path assertion fails and the directory side-effect is observable.**
+- [x] **Step 3: Implement relative path calculation with `os.path.relpath` and remove preflight directory creation, using the nearest existing parent for disk usage.**
+- [x] **Step 4: Run focused tests, then the full suite.**
+- [x] **Step 5: Update both READMEs so `doctor` is described accurately and `init` documents project-relative paths.**
+- [x] **Step 6: Commit `fix(cvc): make onboarding paths reproducible`.**
 
 ### Task 2: Add reproducible source evidence
 
@@ -63,12 +63,12 @@
 - `build_source_evidence(source: Path) -> dict[str, object]` returns format version, basename, byte size, SHA-256, and full ffprobe JSON with no absolute path.
 - `cvc evidence PROJECT --output source-evidence.json` writes the evidence atomically and performs no network request.
 
-- [ ] **Step 1: Write a failing test** that creates a synthetic MP4, calls `build_source_evidence`, and asserts stable hash, size, basename-only source, and codec data.
-- [ ] **Step 2: Run the focused test and confirm the import/command fails because the interface is absent.**
-- [ ] **Step 3: Implement hashing and ffprobe JSON collection using argument arrays and a temporary file followed by `os.replace`.**
-- [ ] **Step 4: Add the `evidence` CLI command and test its output path and absence of absolute paths.**
-- [ ] **Step 5: Run the full suite and update bilingual documentation.**
-- [ ] **Step 6: Commit `feat(cvc): add source evidence records`.**
+- [x] **Step 1: Write a failing test** that creates a synthetic MP4, calls `build_source_evidence`, and asserts stable hash, size, basename-only source, and codec data.
+- [x] **Step 2: Run the focused test and confirm the import/command fails because the interface is absent.**
+- [x] **Step 3: Implement hashing and ffprobe JSON collection using argument arrays and a temporary file followed by `os.replace`.**
+- [x] **Step 4: Add the `evidence` CLI command and test its output path and absence of absolute paths.**
+- [x] **Step 5: Run the full suite and update bilingual documentation.**
+- [x] **Step 6: Commit `feat(cvc): add source evidence records`.**
 
 ### Task 3: Add a local review artifact
 
@@ -83,12 +83,12 @@
 - `render_review_html(project: Project, cues: list[TranscriptCue], output: Path) -> None` writes escaped HTML with a video element, segment table, source intervals, transcript cues, and accept/review status placeholders.
 - `cvc review PROJECT --output review.html` imports the project transcript without uploading it.
 
-- [ ] **Step 1: Write a failing test** with hostile speaker/title/cue text and assert HTML escaping plus segment and timecode presence.
-- [ ] **Step 2: Run the focused test and confirm the missing module/interface failure.**
-- [ ] **Step 3: Implement a small standard-library HTML renderer with escaped text and a relative media source.**
-- [ ] **Step 4: Add the CLI command, including a useful error when the transcript is missing.**
-- [ ] **Step 5: Run full tests and manually open the generated HTML against the real conference project.**
-- [ ] **Step 6: Commit `feat(cvc): add local review artifact`.**
+- [x] **Step 1: Write a failing test** with hostile speaker/title/cue text and assert HTML escaping plus segment and timecode presence.
+- [x] **Step 2: Run the focused test and confirm the missing module/interface failure.**
+- [x] **Step 3: Implement a small standard-library HTML renderer with escaped text and a relative media source.**
+- [x] **Step 4: Add the CLI command, including a useful error when the transcript is missing.**
+- [x] **Step 5: Run full tests and manually open the generated HTML against the real conference project.**
+- [x] **Step 6: Commit `feat(cvc): add local review artifact`.**
 
 ### Task 4: Decode-check before publishing clips
 
@@ -99,23 +99,23 @@
 - Modify: `tests/test_e2e.py`
 
 **Interfaces:**
-- `ensure_decodable(path: Path, label: str) -> None` runs FFmpeg with `-f null -`, never writes media, and raises an actionable `RuntimeError` on decode failure.
+- `ensure_decodable(path: Path, label: str) -> None` decodes video/audio into FFmpeg's null sink with raw validation codecs, never writes encoded media, and raises an actionable `RuntimeError` on decode failure.
 - Both `cut_one` and `render_project` invoke it after probing the staged output and before `os.replace`.
 
-- [ ] **Step 1: Write a failing test** that calls `ensure_decodable` on a corrupt file and asserts an error.
-- [ ] **Step 2: Run the focused test and confirm the missing function failure.**
-- [ ] **Step 3: Implement the decode-only FFmpeg check with no shell interpolation.**
-- [ ] **Step 4: Wire it into both atomic render paths and assert a failed stage leaves no final clip/manifest.**
-- [ ] **Step 5: Run full tests, build the package, rerun the real red-team suite, and manually inspect the review HTML.**
-- [ ] **Step 6: Commit `fix(cvc): decode-check staged clips`.**
+- [x] **Step 1: Write a failing test** that calls `ensure_decodable` on a corrupt file and asserts an error.
+- [x] **Step 2: Run the focused test and confirm the missing function failure.**
+- [x] **Step 3: Implement the decode-only FFmpeg check with no shell interpolation.**
+- [x] **Step 4: Wire it into both atomic render paths and assert a failed stage leaves no final clip/manifest.**
+- [x] **Step 5: Run full tests, build the package, rerun the real red-team suite, and manually inspect the review HTML.**
+- [x] **Step 6: Commit `fix(cvc): decode-check staged clips`.**
 
 ### Final verification
 
-- [ ] Run `PYTHONPATH=src .venv/bin/python -m pytest -q`.
-- [ ] Run `.venv/bin/python -m build`.
-- [ ] Run plugin and skill validators.
-- [ ] Run `/home/totem/Work/conference-video-cutter-red-team-2026-09-19/red-team/run_red_team.py`.
-- [ ] Check `git diff --check`, worktree status, installed plugin cachebuster, and real generated artifacts.
+- [x] Run `PYTHONPATH=src .venv/bin/python -m pytest -q`.
+- [x] Run `.venv/bin/python -m build`.
+- [ ] Run plugin and skill validators after merging to main.
+- [ ] Run `/home/totem/Work/conference-video-cutter-red-team-2026-09-19/red-team/run_red_team.py` against the merged main branch.
+- [ ] Check `git diff --check`, worktree status, installed plugin cachebuster, and real generated artifacts after merging.
 
 ## Self-review
 

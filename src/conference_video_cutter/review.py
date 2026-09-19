@@ -15,8 +15,15 @@ def _esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def render_review_html(project: Project, cues: list[TranscriptCue], output: Path) -> None:
+def render_review_html(project: Project, cues: list[TranscriptCue], output: Path, force: bool = False) -> None:
     output = output.resolve()
+    protected = [project.source]
+    if project.transcript is not None:
+        protected.append(project.transcript)
+    if any(output == path.resolve() for path in protected):
+        raise ValueError("review output must differ from source and transcript")
+    if output.exists() and not force:
+        raise FileExistsError(f"output already exists; use --force to replace it: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
     media_href = quote(os.path.relpath(project.source, output.parent).replace(os.sep, "/"), safe="/.:_-~")
     groups = group_cues(cues, list(project.segments))
@@ -64,7 +71,12 @@ def render_review_html(project: Project, cues: list[TranscriptCue], output: Path
     parts.append(
         "<script>const player=document.getElementById('player');document.querySelectorAll('.seek').forEach((button)=>{button.addEventListener('click',()=>{player.currentTime=Number(button.dataset.start);player.play();});});</script></body></html>"
     )
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, prefix=f".{output.name}.", suffix=".tmp", delete=False) as stream:
-        temporary = Path(stream.name)
-        stream.write("\n".join(parts))
-    os.replace(temporary, output)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, prefix=f".{output.name}.", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write("\n".join(parts))
+        os.replace(temporary, output)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)

@@ -51,7 +51,7 @@ def check_project(path: Path) -> dict[str, Any]:
                     errors.append("source media has no usable duration")
         checks["source"] = source_check
     else:
-        checks["source"] = {"status": "error", "path": str(source) if source else None}
+        checks["source"] = {"status": "error", "path": source.name if source else None}
         errors.append("source video is missing")
 
     if transcript and transcript.is_file():
@@ -83,7 +83,7 @@ def check_project(path: Path) -> dict[str, Any]:
 
     return {
         "format": "cvc-preflight-v1",
-        "project": str(path.resolve()),
+        "project": path.name,
         "checks": checks,
         "errors": errors,
         "network_upload": False,

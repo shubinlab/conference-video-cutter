@@ -72,3 +72,30 @@ def test_init_keeps_source_reachable_when_project_is_elsewhere(tmp_path):
 
     data = json.loads(project.read_text(encoding="utf-8"))
     assert (project.parent / data["source"]).resolve() == source.resolve()
+
+
+def test_init_refuses_to_overwrite_existing_project(tmp_path):
+    source = tmp_path / "conference.mp4"
+    project = tmp_path / "project.json"
+    source.write_bytes(b"placeholder")
+    project.write_text("keep", encoding="utf-8")
+
+    assert main(["init", "--input", str(source), "--output", str(project)]) == 2
+    assert project.read_text(encoding="utf-8") == "keep"
+
+
+def test_transcript_refuses_to_overwrite_existing_output(tmp_path):
+    source = tmp_path / "conference.mp4"
+    transcript = tmp_path / "transcript.srt"
+    project = tmp_path / "project.json"
+    output = tmp_path / "transcript.md"
+    source.write_bytes(b"placeholder")
+    transcript.write_text("1\n00:00:00,000 --> 00:00:01,000\nText\n", encoding="utf-8")
+    project.write_text(
+        json.dumps({"source": source.name, "transcript": transcript.name, "output_dir": "output"}),
+        encoding="utf-8",
+    )
+    output.write_text("keep", encoding="utf-8")
+
+    assert main(["transcript", str(project), "--output", str(output)]) == 2
+    assert output.read_text(encoding="utf-8") == "keep"

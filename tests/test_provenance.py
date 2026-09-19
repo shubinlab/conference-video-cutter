@@ -4,7 +4,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from conference_video_cutter.provenance import build_source_evidence
+import pytest
+
+from conference_video_cutter.provenance import build_source_evidence, write_source_evidence
 from conference_video_cutter.cli import main
 
 
@@ -58,3 +60,22 @@ def test_evidence_cli_writes_json_without_absolute_path(tmp_path: Path, capsys):
     assert result["source"] == source.name
     assert str(source) not in output.read_text(encoding="utf-8")
     assert str(output) in capsys.readouterr().out
+
+
+def test_evidence_refuses_existing_output_without_force(tmp_path: Path):
+    source = _source(tmp_path)
+    project = tmp_path / "project.json"
+    output = tmp_path / "evidence.json"
+    project.write_text(json.dumps({"source": source.name}), encoding="utf-8")
+    output.write_text("keep", encoding="utf-8")
+
+    assert main(["evidence", str(project), "--output", str(output)]) == 2
+
+    assert output.read_text(encoding="utf-8") == "keep"
+
+
+def test_evidence_rejects_source_as_output(tmp_path: Path):
+    source = _source(tmp_path)
+
+    with pytest.raises(ValueError, match="source"):
+        write_source_evidence(source, source)

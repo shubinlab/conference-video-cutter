@@ -94,6 +94,28 @@ def test_preflight_does_not_create_output_directory(tmp_path: Path):
     assert not output_dir.exists()
 
 
+def test_preflight_report_does_not_expose_absolute_project_path(tmp_path: Path):
+    source = tmp_path / "recording.mp4"
+    source.write_bytes(b"not a real video")
+    project = tmp_path / "private-project.json"
+    project.write_text(
+        json.dumps(
+            {
+                "source": source.name,
+                "output_dir": "output",
+                "transcript": None,
+                "transcription": {"mode": "cloud", "provider": "provider"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_tool("cvc_preflight.py", str(project), "--json")
+
+    assert str(project) not in result.stdout
+    assert str(source) not in result.stdout
+
+
 def test_validate_output_rejects_manifest_with_missing_file(tmp_path: Path):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(
