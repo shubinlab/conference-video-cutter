@@ -10,6 +10,7 @@ from pathlib import Path
 from .i18n import message
 from .media import probe, render_project
 from .plan import load_project, validate_project
+from .provenance import write_source_evidence
 from .transcript import parse_srt, read_transcript, render_markdown
 
 
@@ -19,6 +20,9 @@ def build_parser(lang: str = "en") -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     doctor = subparsers.add_parser("doctor", help=message(lang, "doctor_help"), description=message(lang, "doctor_help"))
     doctor.set_defaults(handler="doctor")
+    evidence = subparsers.add_parser("evidence", help="record source hash and media profile")
+    evidence.add_argument("project", type=Path, help=message(lang, "project_help"))
+    evidence.add_argument("--output", type=Path, help="evidence JSON path")
     init = subparsers.add_parser("init", help=message(lang, "init_help"), description=message(lang, "init_help"))
     init.add_argument("--input", type=Path, required=True, help=message(lang, "input_help"))
     init.add_argument("--output", type=Path, required=True, help=message(lang, "output_help"))
@@ -71,6 +75,11 @@ def main(argv: list[str] | None = None) -> int:
         print(output)
         return 0
     project = load_project(args.project)
+    if args.command == "evidence":
+        output = args.output or project.output_dir / "source-evidence.json"
+        write_source_evidence(project.source, output)
+        print(output)
+        return 0
     if args.command == "validate":
         duration = probe(project.source).duration if project.source.is_file() else None
         errors = validate_project(project, duration)
