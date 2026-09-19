@@ -2,6 +2,8 @@ MESSAGES = {
     "en": {
         "description": "Provider-neutral transcript-driven conference video cutter using stream-copy only.",
         "doctor_help": "Check local tools required for conference video processing.",
+        "evidence_help": "Record source hash and media profile.",
+        "review_help": "Generate a local HTML review page.",
         "doctor_ok": "Local tool check passed.",
         "missing_tools": "Missing local tools: {tools}",
         "init_help": "Create a project file.",
@@ -22,6 +24,8 @@ MESSAGES = {
     "ru": {
         "description": "Нарезка конференций по транскрипту только через stream-copy.",
         "doctor_help": "Проверить локальные инструменты для обработки видео конференции.",
+        "evidence_help": "Записать хэш исходника и профиль медиа.",
+        "review_help": "Создать локальную HTML-страницу для проверки.",
         "doctor_ok": "Проверка локальных инструментов пройдена.",
         "missing_tools": "Не найдены локальные инструменты: {tools}",
         "init_help": "Создать файл проекта.",
