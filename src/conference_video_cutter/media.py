@@ -107,6 +107,32 @@ def ensure_streams_start_together(info: MediaInfo, label: str) -> None:
         )
 
 
+def ensure_decodable(path: Path, label: str) -> None:
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-i",
+                str(path),
+                "-map",
+                "0",
+                "-f",
+                "null",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        raise RuntimeError(f"{label} decode failed: {exc}") from exc
+    if result.returncode:
+        detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "ffmpeg returned a non-zero status"
+        raise RuntimeError(f"{label} decode failed: {detail}")
+
+
 def _safe_filename(value: str) -> str:
     cleaned = "".join("-" if char in '\\/:*?"<>|' else char for char in value).strip(" .")
     return cleaned or "segment"
@@ -172,6 +198,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
                     f"clip {segment.id} has no audio stream after stream-copy; "
                     "move the boundary to a keyframe-aligned start time"
                 )
+            ensure_decodable(output, f"clip {segment.id}")
             requested_duration = segment.end - segment.start
             duration_delta = info.duration - requested_duration
             warnings: list[str] = []

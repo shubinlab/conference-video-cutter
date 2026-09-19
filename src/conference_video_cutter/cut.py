@@ -7,7 +7,7 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 
-from .media import DURATION_TOLERANCE, build_cut_command, ensure_streams_start_together, probe
+from .media import DURATION_TOLERANCE, build_cut_command, ensure_decodable, ensure_streams_start_together, probe
 from .models import Segment
 from .timecode import parse_time
 
@@ -74,6 +74,7 @@ def cut_one(source: Path, start: str | int | float, end: str | int | float, outp
             raise RuntimeError("cut has no video stream after stream-copy; move start to a keyframe")
         if source_info.audio_codec and not info.audio_codec:
             raise RuntimeError("cut has no audio stream after stream-copy; move start to a keyframe")
+        ensure_decodable(staging, "cut")
         requested_duration = end_seconds - start_seconds
         duration_delta = info.duration - requested_duration
         warnings: list[str] = []

@@ -8,6 +8,7 @@ import pytest
 
 from conference_video_cutter.cut_cli import main
 from conference_video_cutter.cut import cut_one, snap_one
+from conference_video_cutter.media import ensure_decodable
 
 
 pytestmark = pytest.mark.skipif(
@@ -133,6 +134,14 @@ def test_cut_rejects_unsynchronized_stream_copy_boundary(tmp_path: Path):
 
     with pytest.raises(RuntimeError, match="start mismatch"):
         cut_one(source, "0.2", "1.2", tmp_path / "unsafe.mp4")
+
+
+def test_decode_check_rejects_corrupt_media(tmp_path: Path):
+    corrupt = tmp_path / "corrupt.mp4"
+    corrupt.write_bytes(b"not a media file")
+
+    with pytest.raises(RuntimeError, match="decode failed"):
+        ensure_decodable(corrupt, "corrupt test output")
 
 
 def test_snap_reports_requires_transcode_when_no_nearby_keyframe(tmp_path: Path):

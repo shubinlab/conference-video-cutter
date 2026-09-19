@@ -95,7 +95,7 @@ The generated `source` path is relative to the directory containing `project.jso
    cvc render project.json
    ```
 
-Stream-copy preserves the original encoded streams and never invokes a video or audio encoder. It is constrained by keyframes, so warnings must remain visible and boundary changes must be made in the edit plan.
+Stream-copy preserves the original encoded streams and never invokes a video or audio encoder. It is constrained by keyframes, so warnings must remain visible and boundary changes must be made in the edit plan. Before publication, each staged clip is also decode-checked with FFmpeg; this reads the output but does not encode it.
 
 ## Project file
 
