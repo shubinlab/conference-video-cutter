@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 
 import pytest
 
@@ -19,6 +22,20 @@ def test_new_review_commands_are_bilingual(capsys):
     output = capsys.readouterr().out.lower()
     assert "записать хэш" in output
     assert "создать локальную html" in output
+
+
+def test_module_entrypoint_honors_language_flag():
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = "src"
+    result = subprocess.run(
+        [sys.executable, "-m", "conference_video_cutter", "--lang", "ru", "--help"],
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert result.returncode == 0
+    assert "записать хэш" in result.stdout.lower()
 
 
 def test_all_command_help_is_russian(capsys):

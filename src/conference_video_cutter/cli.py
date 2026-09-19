@@ -42,7 +42,7 @@ def build_parser(lang: str = "en") -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    values = argv or []
+    values = sys.argv[1:] if argv is None else argv
     lang = os.environ.get("CVC_LANG", "en")
     if "--lang" in values and values.index("--lang") + 1 < len(values):
         lang = values[values.index("--lang") + 1]
