@@ -41,9 +41,11 @@ cvc-cut cut --input recording.mp4 --start 00:10:00 --end 00:20:00 --output clip.
 cvc-cut snap --input recording.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4 --window 0.25
 cvc-cut batch project.json --json
 cvc-cut verify output/manifest.json --strict --json
+cvc evidence project.json --output source-evidence.json
+cvc review project.json --output review.html
 ```
 
-It is stream-copy-only. Existing outputs require `--force`; `snap` writes a file only after checking stream alignment and duration. If no safe candidate exists it returns `requires-transcode`; boundary drift is never silently repaired by timestamp shifting.
+It is stream-copy-only. Existing outputs require `--force`; `snap` writes a file only after checking stream alignment and duration. If no safe candidate exists it returns `requires-transcode`; boundary drift is never silently repaired by timestamp shifting. `cvc evidence` records a redacted source profile, and `cvc review` creates a local HTML page for human approval without uploading media.
 
 ## Non-negotiable safety
 
