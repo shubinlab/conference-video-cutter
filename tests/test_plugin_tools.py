@@ -72,6 +72,28 @@ def test_preflight_reports_missing_transcript_provider_without_upload(tmp_path: 
     assert report["network_upload"] is False
 
 
+def test_preflight_does_not_create_output_directory(tmp_path: Path):
+    source = tmp_path / "recording.mp4"
+    source.write_bytes(b"not a real video")
+    output_dir = tmp_path / "not-created"
+    project = tmp_path / "project.json"
+    project.write_text(
+        json.dumps(
+            {
+                "source": source.name,
+                "output_dir": output_dir.name,
+                "transcript": None,
+                "transcription": {"mode": "cloud", "provider": "provider"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    run_tool("cvc_preflight.py", str(project), "--json")
+
+    assert not output_dir.exists()
+
+
 def test_validate_output_rejects_manifest_with_missing_file(tmp_path: Path):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(

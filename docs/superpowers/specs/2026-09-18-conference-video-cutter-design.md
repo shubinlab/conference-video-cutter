@@ -104,7 +104,7 @@ cvc render project.json
 cvc doctor
 ```
 
-The CLI uses `--lang ru|en` and `CVC_LANG`; documentation gives equivalent commands in both languages. `cvc doctor` checks Python, FFmpeg, FFprobe, and the selected transcription command without downloading a model or touching media.
+The CLI uses `--lang ru|en` and `CVC_LANG`; documentation gives equivalent commands in both languages. `cvc doctor` checks the local Python, FFmpeg, and FFprobe prerequisites without downloading a model or touching media. `scripts/cvc_preflight.py` checks a selected project, including its transcript/provider choice and storage, without network access or output-directory creation.
 
 ## Failure handling
 

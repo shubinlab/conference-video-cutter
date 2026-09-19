@@ -71,9 +71,15 @@ def check_project(path: Path) -> dict[str, Any]:
         errors.append("ffmpeg and ffprobe are required for media verification")
 
     if output_dir:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        usage = shutil.disk_usage(output_dir)
-        checks["storage"] = {"status": "ok", "free_bytes": usage.free, "path": str(output_dir)}
+        disk_path = output_dir
+        while not disk_path.exists() and disk_path != disk_path.parent:
+            disk_path = disk_path.parent
+        usage = shutil.disk_usage(disk_path)
+        try:
+            report_path = str(output_dir.relative_to(base))
+        except ValueError:
+            report_path = output_dir.name
+        checks["storage"] = {"status": "ok", "free_bytes": usage.free, "path": report_path}
 
     return {
         "format": "cvc-preflight-v1",

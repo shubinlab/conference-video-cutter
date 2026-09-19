@@ -41,6 +41,8 @@ cvc doctor
 cvc --lang ru doctor
 ```
 
+`cvc doctor` checks only the local Python/FFmpeg/FFprobe prerequisites. For a project-specific no-upload readiness check, run `python3 scripts/cvc_preflight.py project.json --json`; it validates the source, transcript/provider choice, and available disk without creating the output directory.
+
 The media engine is also available as a small standalone CLI. It always uses FFmpeg stream-copy and never accepts a transcoding mode:
 
 ```bash
@@ -63,6 +65,8 @@ cvc-cut verify output/manifest.json --strict --json
    ```bash
    cvc --lang ru init --input conference.mp4 --output project.json
    ```
+
+The generated `source` path is relative to the directory containing `project.json`, so the project can live in a separate folder from the recording.
 
 3. Fill `speakers` and `segments` in `project.json`. Review every start and end against both the transcript and the video. A speaker segment should begin with the first meaningful frame of the speaker and end after the speaker's final answer; host-only introductions and preparation belong in labeled `role: extra` segments when they need to be retained.
 4. Render a readable transcript:

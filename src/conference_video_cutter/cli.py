@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(
                 {
                     "language": args.lang,
-                    "source": source.name,
+                    "source": os.path.relpath(source, output.parent),
                     "transcript": "transcript.srt",
                     "output_dir": "output",
                     "copy_streams": True,

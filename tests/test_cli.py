@@ -31,3 +31,18 @@ def test_init_writes_valid_json_for_quoted_source(tmp_path):
     data = json.loads(project.read_text(encoding="utf-8"))
     assert data["source"] == source.name
     assert data["copy_streams"] is True
+
+
+def test_init_keeps_source_reachable_when_project_is_elsewhere(tmp_path):
+    source_dir = tmp_path / "media"
+    project_dir = tmp_path / "projects"
+    source_dir.mkdir()
+    project_dir.mkdir()
+    source = source_dir / "conference.mp4"
+    project = project_dir / "project.json"
+    source.write_bytes(b"placeholder")
+
+    assert main(["init", "--input", str(source), "--output", str(project)]) == 0
+
+    data = json.loads(project.read_text(encoding="utf-8"))
+    assert (project.parent / data["source"]).resolve() == source.resolve()
