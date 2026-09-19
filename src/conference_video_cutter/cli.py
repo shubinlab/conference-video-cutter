@@ -11,6 +11,7 @@ from .i18n import message
 from .media import probe, render_project
 from .plan import load_project, validate_project
 from .provenance import write_source_evidence
+from .review import render_review_html
 from .transcript import parse_srt, read_transcript, render_markdown
 
 
@@ -23,6 +24,9 @@ def build_parser(lang: str = "en") -> argparse.ArgumentParser:
     evidence = subparsers.add_parser("evidence", help="record source hash and media profile")
     evidence.add_argument("project", type=Path, help=message(lang, "project_help"))
     evidence.add_argument("--output", type=Path, help="evidence JSON path")
+    review = subparsers.add_parser("review", help="generate a local HTML review page")
+    review.add_argument("project", type=Path, help=message(lang, "project_help"))
+    review.add_argument("--output", type=Path, help="review HTML path")
     init = subparsers.add_parser("init", help=message(lang, "init_help"), description=message(lang, "init_help"))
     init.add_argument("--input", type=Path, required=True, help=message(lang, "input_help"))
     init.add_argument("--output", type=Path, required=True, help=message(lang, "output_help"))
@@ -78,6 +82,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "evidence":
         output = args.output or project.output_dir / "source-evidence.json"
         write_source_evidence(project.source, output)
+        print(output)
+        return 0
+    if args.command == "review":
+        if project.transcript is None or not project.transcript.is_file():
+            print(message(args.lang, "transcript_not_found", path=project.transcript), file=sys.stderr)
+            return 1
+        transcript_text, replaced = read_transcript(project.transcript)
+        if replaced:
+            print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
+        output = args.output or project.output_dir / "review.html"
+        render_review_html(project, parse_srt(transcript_text), output)
         print(output)
         return 0
     if args.command == "validate":

@@ -41,11 +41,14 @@ cvc doctor
 cvc --lang ru doctor
 python3 scripts/cvc_preflight.py project.json --json
 cvc evidence project.json --output source-evidence.json
+cvc review project.json --output review.html
 ```
 
 `cvc doctor` проверяет только локальные prerequisites: Python, FFmpeg и FFprobe. Для проверки конкретного проекта без загрузки данных запустите `python3 scripts/cvc_preflight.py project.json --json`: она проверит исходник, транскрипт или провайдера и свободное место, не создавая output-директорию.
 
 `cvc evidence` записывает воспроизводимые SHA-256 и профиль медиа через `ffprobe`. В отчёте остаётся только имя исходного файла без абсолютного локального пути; сетевых запросов команда не делает.
+
+`cvc review` создаёт локальную HTML-страницу для проверки: исходное видео, переходы по таймкодам сегментов и экранированный текст транскрипта. Сервер не запускается, медиа никуда не загружается.
 
 Медиа-движок также доступен как отдельный небольшой CLI. Он всегда использует stream-copy через FFmpeg и не поддерживает режим перекодирования:
 

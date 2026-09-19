@@ -41,11 +41,14 @@ cvc doctor
 cvc --lang ru doctor
 python3 scripts/cvc_preflight.py project.json --json
 cvc evidence project.json --output source-evidence.json
+cvc review project.json --output review.html
 ```
 
 `cvc doctor` checks only the local Python/FFmpeg/FFprobe prerequisites. For a project-specific no-upload readiness check, run `python3 scripts/cvc_preflight.py project.json --json`; it validates the source, transcript/provider choice, and available disk without creating the output directory.
 
 `cvc evidence` records a reproducible SHA-256 and an `ffprobe` media profile. The report contains only the source basename, not the absolute local path, and makes no network request.
+
+`cvc review` creates a local HTML review page with a playable source, seekable segment timecodes, and escaped transcript text. It does not start a server or upload media.
 
 The media engine is also available as a small standalone CLI. It always uses FFmpeg stream-copy and never accepts a transcoding mode:
 
