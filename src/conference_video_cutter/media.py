@@ -107,6 +107,8 @@ def _sha256(path: Path) -> str:
 def render_project(project: Project, accurate: bool = False, force: bool = False) -> dict[str, object]:
     if accurate:
         raise ValueError("transcoding is disabled: Conference Video Cutter always uses stream-copy")
+    if not project.copy_streams:
+        raise ValueError("copy_streams must be true: transcoding is disabled")
     if not project.source.is_file():
         raise FileNotFoundError(f"source video not found: {project.source}")
     source_info = probe(project.source)
@@ -173,7 +175,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
         manifest = {
             "source": project.source.name,
             "source_duration": source_info.duration,
-        "mode": "stream-copy",
+            "mode": "stream-copy",
             "clips": entries,
             "warnings": manifest_warnings,
         }

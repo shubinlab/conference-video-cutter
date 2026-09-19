@@ -33,6 +33,17 @@ Use this skill as a provider-neutral editorial workflow. The product is not a lo
    python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
    ```
 
+For direct media operations, use the bundled `cvc-cut` CLI:
+
+```bash
+cvc-cut probe recording.mp4 --json
+cvc-cut cut --input recording.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4
+cvc-cut batch project.json --json
+cvc-cut verify output/manifest.json --strict --json
+```
+
+It is stream-copy-only. Existing outputs require `--force`; boundary drift is reported as a warning and must be reviewed, never fixed by enabling transcoding.
+
 ## Non-negotiable safety
 
 - Ask for explicit consent before cloud processing and state what is uploaded, the provider, retention, and estimated cost when known.

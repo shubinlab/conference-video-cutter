@@ -41,6 +41,17 @@ cvc doctor
 cvc --lang ru doctor
 ```
 
+The media engine is also available as a small standalone CLI. It always uses FFmpeg stream-copy and never accepts a transcoding mode:
+
+```bash
+cvc-cut probe conference.mp4 --json
+cvc-cut cut --input conference.mp4 --start 00:10:00 --end 00:20:00 --output clip.mp4
+cvc-cut batch project.json --json
+cvc-cut verify output/manifest.json --strict --json
+```
+
+`cvc-cut cut` is the shortest path for one interval; `cvc-cut batch` uses the same reviewed project format as `cvc render`. Existing files are protected unless `--force` is explicit. Because streams are copied, a non-keyframe boundary can produce a duration warning; the CLI reports it instead of silently re-encoding.
+
 ## Quick start
 
 1. Obtain a timestamped transcript for the full recording by importing SRT/VTT/JSON or using an explicitly selected cloud provider. Keep the original transcript as evidence. Local ASR is optional, not required.
