@@ -113,9 +113,9 @@
 
 - [x] Run `PYTHONPATH=src .venv/bin/python -m pytest -q`.
 - [x] Run `.venv/bin/python -m build`.
-- [ ] Run plugin and skill validators after merging to main.
-- [ ] Run `/home/totem/Work/conference-video-cutter-red-team-2026-09-19/red-team/run_red_team.py` against the merged main branch.
-- [ ] Check `git diff --check`, worktree status, installed plugin cachebuster, and real generated artifacts after merging.
+- [x] Run plugin and skill validators after merging to main.
+- [x] Run `/home/totem/Work/conference-video-cutter-red-team-2026-09-19/red-team/run_red_team.py` against the merged main branch.
+- [x] Check `git diff --check`, worktree status, installed plugin cachebuster, and real generated artifacts after merging.
 
 ## Self-review
 
