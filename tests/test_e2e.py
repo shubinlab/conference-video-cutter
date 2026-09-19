@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from conference_video_cutter.cli import main
-from conference_video_cutter.media import probe, render_project
+from conference_video_cutter.media import MediaInfo, probe, render_project
 from conference_video_cutter.plan import load_project
 
 
@@ -154,3 +154,22 @@ def test_render_does_not_publish_partial_directory_when_swap_fails(tmp_path: Pat
 
     assert not output_dir.exists()
     assert not list(tmp_path.glob(".output.*"))
+
+
+def test_render_refuses_existing_empty_output_without_force(tmp_path: Path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"placeholder")
+    project_path = tmp_path / "project.json"
+    project_path.write_text(
+        json.dumps({"source": source.name, "output_dir": "output", "segments": []}),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    monkeypatch.setattr(
+        "conference_video_cutter.media.probe",
+        lambda path: MediaInfo(duration=2.0, video_codec="h264", audio_codec="aac"),
+    )
+
+    with pytest.raises(FileExistsError, match="--force"):
+        render_project(load_project(project_path))

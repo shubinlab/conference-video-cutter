@@ -109,13 +109,13 @@ def main(argv: list[str] | None = None) -> int:
         if project.transcript is None or not project.transcript.is_file():
             print(message(args.lang, "transcript_not_found", path=project.transcript), file=sys.stderr)
             return 1
-        cues, replaced = read_cues(project.transcript)
-        if replaced:
-            print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
-        output = args.output or project.output_dir / "review.html"
         try:
+            cues, replaced = read_cues(project.transcript)
+            if replaced:
+                print(message(args.lang, "transcript_decode_warning"), file=sys.stderr)
+            output = args.output or project.output_dir / "review.html"
             render_review_html(project, cues, output, force=args.force)
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         print(output)

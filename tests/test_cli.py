@@ -99,3 +99,18 @@ def test_transcript_refuses_to_overwrite_existing_output(tmp_path):
 
     assert main(["transcript", str(project), "--output", str(output)]) == 2
     assert output.read_text(encoding="utf-8") == "keep"
+
+
+def test_review_reports_malformed_json_transcript_without_traceback(tmp_path, capsys):
+    source = tmp_path / "conference.mp4"
+    transcript = tmp_path / "transcript.json"
+    project = tmp_path / "project.json"
+    source.write_bytes(b"placeholder")
+    transcript.write_text("{not-json", encoding="utf-8")
+    project.write_text(
+        json.dumps({"source": source.name, "transcript": transcript.name, "output_dir": "output"}),
+        encoding="utf-8",
+    )
+
+    assert main(["review", str(project)]) == 2
+    assert "error:" in capsys.readouterr().err

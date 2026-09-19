@@ -173,12 +173,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
     if errors:
         raise ValueError("invalid project:\n" + "\n".join(f"- {error}" for error in errors))
     if project.output_dir.exists() and not force:
-        existing = list(project.output_dir.iterdir())
-        if existing:
-            raise FileExistsError(
-                "output already exists; use --force to replace it: "
-                + ", ".join(path.name for path in existing[:5])
-            )
+        raise FileExistsError("output already exists; use --force to replace it: " + str(project.output_dir))
     project.output_dir.parent.mkdir(parents=True, exist_ok=True)
     staging = project.output_dir.parent / f".{project.output_dir.name}.cvc-staging-{uuid.uuid4().hex}"
     staging.mkdir()
