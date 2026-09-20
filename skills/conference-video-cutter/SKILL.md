@@ -5,7 +5,7 @@ description: Use when turning a long conference, webinar, panel, or interview in
 
 # Conference Video Cutter
 
-Use this skill as a provider-neutral editorial workflow. The product is not a local transcription service: accept an existing SRT/VTT/JSON transcript, or ask the user to choose an explicit cloud provider. Never silently upload media and never make local ASR a prerequisite.
+Use this skill as a provider-neutral editorial workflow. Accept an existing SRT/VTT/JSON transcript, an explicitly selected cloud provider, or the optional local Voxtype/NPU adapter. Never silently upload media and never make local ASR a prerequisite.
 
 ## Workflow
 
@@ -20,6 +20,14 @@ Use this skill as a provider-neutral editorial workflow. The product is not a lo
    ```bash
    python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.cvc.json
    ```
+
+   If Voxtype is configured for a local Lemonade NPU backend, the resumable adapter keeps the audio local and writes both JSON and readable Markdown:
+
+   ```bash
+   python3 scripts/cvc_transcribe_voxtype.py recording.mp4 --output-dir transcript/voxtype-npu --retries 3
+   ```
+
+   It requires a loopback endpoint and a health response that proves the requested model is ready on `device: npu`. It retries transient transcription failures with bounded backoff and resumes from completed JSONL records after interruption. It uses short temporary PCM chunks only for ASR; it never rewrites the source video. The resulting timestamps are chunk boundaries because the FLM endpoint does not expose word or segment timestamps. Do not use them as final cut boundaries without reviewing the video.
 
    The normalizer refuses to replace an existing file unless `--force` is explicit.
 
@@ -52,6 +60,7 @@ It is stream-copy-only. Existing outputs require `--force`; `snap` writes a file
 ## Non-negotiable safety
 
 - Ask for explicit consent before cloud processing and state what is uploaded, the provider, retention, and estimated cost when known.
+- For Voxtype/NPU, keep the endpoint loopback-only unless the user explicitly passes `--allow-remote`; record the model, device, source hash, chunk settings, and health response in `provenance.json`.
 - Do not expose tokens, cookies, private media URLs, or absolute local paths in project files, logs, Markdown, or Git.
 - Do not overwrite an existing export without confirmation.
 - Preserve uncertain transcript text and mark uncertainty; do not silently invent names, pronouns, companies, products, or topics.

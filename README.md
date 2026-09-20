@@ -18,11 +18,21 @@ Conference Video Cutter makes those decisions explicit in a small JSON edit plan
 - deterministic half-open intervals (`[start, end)`), overlap and duration validation;
 - FFmpeg stream-copy cuts only; the product never transcodes;
 - post-render `ffprobe` checks, SHA-256 hashes, and a machine-readable `manifest.json`;
-- provider-neutral transcript contract: import SRT/VTT/JSON or connect an explicit cloud provider;
+- provider-neutral transcript contract: import SRT/VTT/JSON, connect an explicit cloud provider, or use the optional local Voxtype/NPU adapter;
 - no silent media upload and no mandatory local ASR;
 - Codex skills and safety tools for preflight, normalization, review, and output verification.
 
 The project deliberately separates transcription, editorial review, and rendering. A cloud transcription provider is an explicit opt-in; a local ASR backend is optional. The final cut remains reproducible from the reviewed plan.
+
+### Optional local Voxtype/NPU transcription
+
+When Voxtype is configured with a loopback Lemonade backend, transcribe without uploading media:
+
+```bash
+python3 scripts/cvc_transcribe_voxtype.py conference.mp4 --output-dir transcript/voxtype-npu --retries 3
+```
+
+The adapter proves that the configured model is ready on an NPU, extracts temporary mono 16 kHz PCM chunks with FFmpeg, and writes resumable `chunks.jsonl`, canonical `transcript.json`, readable `transcript.md`, and a redacted processing receipt in `provenance.json`. It retries transient requests with bounded backoff and safely resumes after interruption. It does not alter the source video. The FLM endpoint currently supplies no segment timestamps, so the transcript records chunk-boundary timing; speaker identity and final edit boundaries still require human/video review. Non-loopback endpoints are refused unless `--allow-remote` is explicit.
 
 ## Install
 
@@ -154,10 +164,11 @@ The repository is also a Codex plugin. Its skills teach the cloud-first workflow
 ```bash
 python3 scripts/cvc_preflight.py project.json --json
 python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.cvc.json
+python3 scripts/cvc_transcribe_voxtype.py conference.mp4 --output-dir transcript/voxtype-npu
 python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
 ```
 
-`cvc_preflight.py` checks source, transcript/provider choice, FFmpeg, and disk without making a network request. `cvc_normalize_transcript.py` converts SRT, VTT, and common provider JSON into `cvc-transcript-v1`; it refuses to replace an existing file unless `--force` is explicit. `cvc_validate_output.py` checks files and hashes and can fail on render warnings.
+`cvc_preflight.py` checks source, transcript/provider choice, FFmpeg, and disk without making a network request. `cvc_normalize_transcript.py` converts SRT, VTT, and common provider JSON into `cvc-transcript-v1`; it refuses to replace an existing file unless `--force` is explicit. `cvc_transcribe_voxtype.py` is the optional local-only, resumable NPU path; it makes no cloud request. `cvc_validate_output.py` checks files and hashes and can fail on render warnings.
 
 ## Design boundaries
 

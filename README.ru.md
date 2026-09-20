@@ -18,11 +18,21 @@ Conference Video Cutter делает эти решения явными в не�
 - детерминированные полуинтервалы (`[start, end)`), проверка пересечений и длительности;
 - только stream-copy через FFmpeg; программа никогда не перекодирует;
 - постпроверка через `ffprobe`, SHA-256 и машинно-читаемый `manifest.json`;
-- принимает SRT/VTT/JSON либо явно выбранного облачного провайдера;
+- принимает SRT/VTT/JSON, явно выбранного облачного провайдера либо опциональный локальный Voxtype/NPU;
 - не загружает видео без явного согласия и не требует локального ASR;
 - содержит Codex skills и безопасные инструменты preflight, нормализации и проверки экспорта.
 
 Проект разделяет транскрипцию, редакторскую проверку и рендер. Облачный провайдер выбирается явно, локальный ASR остаётся опциональным, а итоговая нарезка воспроизводится по проверенному плану.
+
+### Опциональная локальная транскрипция через Voxtype/NPU
+
+Если Voxtype настроен на loopback-бэкенд Lemonade, распознайте запись без загрузки медиа наружу:
+
+```bash
+python3 scripts/cvc_transcribe_voxtype.py conference.mp4 --output-dir transcript/voxtype-npu --retries 3
+```
+
+Адаптер проверяет, что выбранная модель готова именно на NPU, временно извлекает из видео моно PCM 16 кГц через FFmpeg и записывает возобновляемые `chunks.jsonl`, канонический `transcript.json`, читаемый `transcript.md` и квитанцию обработки `provenance.json`. Временные ошибки запроса повторяются с ограниченным backoff, а после прерывания обработка продолжается с последнего записанного чанка. Исходное видео не изменяется. FLM API не отдаёт таймкоды сегментов, поэтому транскрипт получает границы чанков; персоналии и финальные границы нарезки всё равно нужно проверять по видео. Удалённые endpoint'ы блокируются, если явно не указать `--allow-remote`.
 
 ## Установка
 
@@ -154,10 +164,11 @@ output/
 ```bash
 python3 scripts/cvc_preflight.py project.json --json
 python3 scripts/cvc_normalize_transcript.py transcript.srt --output transcript.cvc.json
+python3 scripts/cvc_transcribe_voxtype.py conference.mp4 --output-dir transcript/voxtype-npu
 python3 scripts/cvc_validate_output.py output/manifest.json --json --strict
 ```
 
-`cvc_preflight.py` проверяет исходник, транскрипт или провайдера, FFmpeg и место на диске без сетевых запросов. `cvc_normalize_transcript.py` приводит SRT, VTT и распространённый JSON провайдеров к формату `cvc-transcript-v1`; существующий файл не заменяется без явного `--force`. `cvc_validate_output.py` проверяет файлы и хэши и может считать предупреждения рендера ошибкой.
+`cvc_preflight.py` проверяет исходник, транскрипт или провайдера, FFmpeg и место на диске без сетевых запросов. `cvc_normalize_transcript.py` приводит SRT, VTT и распространённый JSON провайдеров к формату `cvc-transcript-v1`; существующий файл не заменяется без явного `--force`. `cvc_transcribe_voxtype.py` — опциональный локальный возобновляемый путь через NPU, без облачной загрузки. `cvc_validate_output.py` проверяет файлы и хэши и может считать предупреждения рендера ошибкой.
 
 ## Границы проекта
 

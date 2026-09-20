@@ -27,7 +27,7 @@ def check_project(path: Path) -> dict[str, Any]:
     transcription = data.get("transcription") or {}
     provider = transcription.get("provider")
     provider_text = str(provider) if provider is not None else ""
-    known_providers = {"assemblyai", "aws", "azure", "deepgram", "google", "local", "manual", "openai", "rev", "whisper"}
+    known_providers = {"assemblyai", "aws", "azure", "deepgram", "google", "local", "manual", "openai", "rev", "voxtype-npu", "whisper"}
     safe_provider = provider_text if provider_text.lower() in known_providers else "configured"
     checks: dict[str, Any] = {}
     errors: list[str] = []
