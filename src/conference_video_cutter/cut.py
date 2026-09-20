@@ -7,7 +7,7 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 
-from .media import DURATION_TOLERANCE, build_cut_command, ensure_decodable, ensure_streams_start_together, probe
+from .media import DURATION_TOLERANCE, cut_and_probe, ensure_decodable, probe
 from .models import Segment
 from .timecode import parse_time
 
@@ -67,9 +67,7 @@ def cut_one(source: Path, start: str | int | float, end: str | int | float, outp
     staging = output.parent / f".cvc-cut-{uuid.uuid4().hex}.mp4"
     segment = Segment("cut", "cut", "other", start_seconds, end_seconds, "extra")
     try:
-        subprocess.run(build_cut_command(source, segment, staging), check=True)
-        info = probe(staging)
-        ensure_streams_start_together(info, "cut")
+        info, sync_adjusted = cut_and_probe(source, segment, staging)
         if source_info.video_codec and not info.video_codec:
             raise RuntimeError("cut has no video stream after stream-copy; move start to a keyframe")
         if source_info.audio_codec and not info.audio_codec:
@@ -94,6 +92,7 @@ def cut_one(source: Path, start: str | int | float, end: str | int | float, outp
             "size_bytes": output.stat().st_size,
             "media": asdict(info),
             "mode": "stream-copy",
+            "sync_adjusted": sync_adjusted,
             "warnings": warnings,
         }
     finally:

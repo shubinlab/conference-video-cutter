@@ -162,7 +162,11 @@ def main(argv: list[str] | None = None) -> int:
         print(output)
         return 0
     if args.command == "render":
-        manifest = render_project(project, accurate=False, force=args.force)
+        try:
+            manifest = render_project(project, accurate=False, force=args.force)
+        except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(message(args.lang, "rendered", count=len(manifest["clips"])))
         if manifest["warnings"]:
             print(message(args.lang, "render_warnings", count=len(manifest["warnings"])))

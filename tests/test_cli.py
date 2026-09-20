@@ -114,3 +114,12 @@ def test_review_reports_malformed_json_transcript_without_traceback(tmp_path, ca
 
     assert main(["review", str(project)]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+def test_render_reports_runtime_error_without_traceback(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "project.json"
+    project.write_text(json.dumps({"source": "recording.mp4", "output_dir": "output"}), encoding="utf-8")
+    monkeypatch.setattr("conference_video_cutter.cli.render_project", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("sync gate")))
+
+    assert main(["render", str(project)]) == 2
+    assert "error: sync gate" in capsys.readouterr().err

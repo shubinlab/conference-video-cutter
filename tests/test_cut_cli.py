@@ -129,11 +129,15 @@ def test_cut_cli_cuts_one_file_without_transcoding(tmp_path: Path, capsys):
     assert result["media"]["audio_codec"] == "aac"
 
 
-def test_cut_rejects_unsynchronized_stream_copy_boundary(tmp_path: Path):
+def test_cut_repairs_unsynchronized_stream_copy_boundary(tmp_path: Path):
     source = _gop_source(tmp_path)
 
-    with pytest.raises(RuntimeError, match="start mismatch"):
-        cut_one(source, "0.2", "1.2", tmp_path / "unsafe.mp4")
+    output = tmp_path / "repaired.mp4"
+    result = cut_one(source, "0.2", "1.2", output)
+
+    assert result["mode"] == "stream-copy"
+    assert result["sync_adjusted"] is True
+    assert output.is_file()
 
 
 def test_decode_check_rejects_corrupt_media(tmp_path: Path):

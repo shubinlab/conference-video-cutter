@@ -56,6 +56,45 @@ def build_cut_command(source: Path, segment: Segment, output: Path, accurate: bo
     return command + [str(output)]
 
 
+def build_synced_cut_command(source: Path, segment: Segment, output: Path, accurate: bool = False) -> list[str]:
+    """Build a stream-copy fallback that aligns audio through FFmpeg's input sync."""
+    if accurate:
+        raise ValueError("transcoding is disabled: Conference Video Cutter always uses stream-copy")
+    duration = segment.end - segment.start
+    return [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-n",
+        "-ss",
+        _seconds(segment.start),
+        "-i",
+        str(source),
+        "-ss",
+        _seconds(segment.start),
+        "-isync",
+        "0",
+        "-i",
+        str(source),
+        "-map",
+        "0:v?",
+        "-map",
+        "0:s?",
+        "-map",
+        "0:d?",
+        "-map",
+        "1:a?",
+        "-t",
+        _seconds(duration),
+        "-c",
+        "copy",
+        "-avoid_negative_ts",
+        "disabled",
+        str(output),
+    ]
+
+
 def probe(path: Path) -> MediaInfo:
     result = subprocess.run(
         [
@@ -105,6 +144,27 @@ def ensure_streams_start_together(info: MediaInfo, label: str) -> None:
             f"{label} audio/video start mismatch {delta:+.3f}s after stream-copy; "
             "move the start to a decodable video keyframe or use transcoding"
         )
+
+
+def cut_and_probe(source: Path, segment: Segment, output: Path) -> tuple[MediaInfo, bool]:
+    """Cut with normal stream-copy, retrying input sync only on A/V mismatch."""
+    subprocess.run(build_cut_command(source, segment, output), check=True)
+    info = probe(output)
+    try:
+        ensure_streams_start_together(info, f"clip {segment.id}")
+        return info, False
+    except RuntimeError as initial_error:
+        fallback_output = output.parent / f".{output.name}.cvc-sync-{uuid.uuid4().hex}.mp4"
+        try:
+            subprocess.run(build_synced_cut_command(source, segment, fallback_output), check=True)
+            fallback_info = probe(fallback_output)
+            ensure_streams_start_together(fallback_info, f"clip {segment.id} after input sync")
+            os.replace(fallback_output, output)
+        except (OSError, RuntimeError, subprocess.CalledProcessError) as fallback_error:
+            raise RuntimeError(f"{initial_error}; input-sync stream-copy fallback failed: {fallback_error}") from fallback_error
+        finally:
+            fallback_output.unlink(missing_ok=True)
+        return fallback_info, True
 
 
 def ensure_decodable(path: Path, label: str) -> None:
@@ -226,10 +286,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
     try:
         for segment in project.segments:
             output = staging / _output_name(project, segment)
-            command = build_cut_command(project.source, segment, output, accurate=accurate)
-            subprocess.run(command, check=True)
-            info = probe(output)
-            ensure_streams_start_together(info, f"clip {segment.id}")
+            info, sync_adjusted = cut_and_probe(project.source, segment, output)
             if source_info.video_codec and not info.video_codec:
                 raise RuntimeError(
                     f"clip {segment.id} has no video stream after stream-copy; "
@@ -264,6 +321,7 @@ def render_project(project: Project, accurate: bool = False, force: bool = False
                     "sha256": _sha256(output),
                     "media": asdict(info),
                     "mode": "stream-copy",
+                    "sync_adjusted": sync_adjusted,
                     "warnings": warnings,
                 }
             )
